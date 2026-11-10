@@ -605,7 +605,6 @@ static int lo_probe_possible_loctls(struct b43_wldev *dev,
 
 	memcpy(&orig_loctl, probe_loctl, sizeof(struct b43_loctl));
 	i = begin;
-	d->current_state = i;
 	while (1) {
 		B43_WARN_ON(!(i >= 1 && i <= 8));
 		memcpy(&test_loctl, &orig_loctl, sizeof(struct b43_loctl));
@@ -623,6 +622,7 @@ static int lo_probe_possible_loctls(struct b43_wldev *dev,
 				       sizeof(struct b43_loctl));
 				found_lower = 1;
 				d->lowest_feedth = feedth;
+				d->current_state = i;
 				if ((d->nr_measured < 2) &&
 				    !has_loopback_gain(phy))
 					break;
@@ -635,7 +635,6 @@ static int lo_probe_possible_loctls(struct b43_wldev *dev,
 			i = 1;
 		else
 			i++;
-		d->current_state = i;
 	}
 
 	return found_lower;
