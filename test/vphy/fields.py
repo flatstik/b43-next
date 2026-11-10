@@ -91,6 +91,18 @@ def functions_of(path):
     return where
 
 
+_lines = {}
+
+
+def regname(path, line):
+    """The B43_PHY_ name the original source gives the register, if any."""
+    if path not in _lines:
+        _lines[path] = open(path).read().split("\n") if os.path.exists(path) else []
+    text = _lines[path][line - 1] if 0 < line <= len(_lines[path]) else ""
+    m = re.search(r"\bb43_(?:radio|phy)_\w+\(\s*\w+\s*,\s*(B43_PHY_\w+)", text)
+    return m.group(1) if m else ""
+
+
 def static_calls(ipath):
     """The accessor calls of the .c file a .i file was made from."""
     text = open(ipath).read()
@@ -110,16 +122,21 @@ def static_calls(ipath):
             at = line + chunk.count("\n", 0, c.start()) - 1
             args = split_args(chunk, c.end())
             space, op = c.group(1), OPS[c.group(2)]
+            lhs = re.search(r"([A-Za-z_][\w.\[\]>-]*)\s*[|&+]?=[\s(]*(?:\w+\s*\)[\s(]*)?$",
+                            chunk[max(0, c.start() - 80):c.start()])
             reg = const(args[1]) if len(args) > 1 else None
             mask = val = None
+            valexpr = ""
             if op == "maskset" and len(args) > 3:
-                mask, val = const(args[2]), const(args[3])
+                mask, val, valexpr = const(args[2]), const(args[3]), args[3]
             elif op in ("mask", "set", "wr") and len(args) > 2:
-                val = const(args[2])
+                val, valexpr = const(args[2]), args[2]
             calls.append({"src": os.path.basename(src), "line": at,
                           "func": funcs[src].get(at, "?"), "space": space,
                           "op": op, "reg": reg, "regexpr": args[1] if len(args) > 1 else "",
-                          "mask": mask, "val": val})
+                          "regname": regname(src, at), "mask": mask, "val": val,
+                          "valexpr": " ".join(valexpr.split()),
+                          "lhs": lhs.group(1) if lhs and op == "rd" else ""})
         line += chunk.count("\n")
     return calls
 

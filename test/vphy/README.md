@@ -38,3 +38,8 @@ step, then `fields.py` puts the accessor calls of the preprocessed files next
 to the traces: one row per bit field of a PHY or radio register, as its
 docstring describes. Registers that only a loop over a computed register
 number writes are tables in register space and get one `range` row.
+
+`hypotheses.py` then gives every field its (block, role) pairs with a weight,
+from the rules of `priors_g.py`: what b43 computes the value from, the
+register's name, the phase it is written in, how its values spread. The
+rules are fixed before any measurement; their docstring lists them.

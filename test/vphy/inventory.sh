@@ -1,7 +1,8 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-2.0-only
 #
-# The G-PHY boards and options the inventory runs, and the inventory itself.
+# The G-PHY boards and options the inventory runs, the inventory and the
+# prior hypotheses of its fields.
 #
 #     VCHIPD=.../interpreter/vchipd.py ./inventory.sh [OUT]
 #
@@ -38,3 +39,5 @@ done <<EOF
 EOF
 
 python3 fields.py --source build/*.i --trace $traces > "$OUT/fields.tsv" 2> "$OUT/fields.log"
+python3 hypotheses.py --fields "$OUT/fields.tsv" --source build/*.i --trace $traces \
+	> "$OUT/hypotheses.tsv" 2> "$OUT/hypotheses.log"
