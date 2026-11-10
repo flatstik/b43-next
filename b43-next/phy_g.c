@@ -2037,8 +2037,10 @@ static void b43_phy_initg(struct b43_wldev *dev)
 		b43_phy_set(dev, B43_PHY_EXTG(0x01), 0x80);
 		b43_phy_set(dev, B43_PHY_OFDM(0x3E), 0x4);
 	}
-	if (has_loopback_gain(phy))
+	if (has_loopback_gain(phy)) {
 		b43_calc_loopback_gain(dev);
+		b43_lo_g_cleanup(dev);
+	}
 
 	if (phy->radio_rev != 8) {
 		if (gphy->initval == 0xFFFF)
