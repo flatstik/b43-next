@@ -3,10 +3,11 @@
  * b43's PHY code on the virtual chip.
  *
  * The PHY files of b43 are compiled as they are; main_part.c is what they
- * call of main.c, cut out of it by extract.py. What is written here is the
- * rest of a kernel around them: the bus, whose accesses go to the chip, time,
- * which the chip is told of, and the few functions of main.c that need a
- * running ucode or a bus reset, which this harness has not.
+ * call of main.c, cut out of it by extract.py and built on its own. What is
+ * written here is the rest of a kernel around them: the bus, whose accesses
+ * go to the chip, time, which the chip is told of, and the few functions of
+ * main.c that need a running ucode or a bus reset, which this harness has
+ * not.
  *
  * drive() does what b43_wireless_core_init() does to a PHY, then the steps
  * B43_STEPS asks for, and at each checkpoint prints what the driver holds:
@@ -36,6 +37,7 @@ void chip_state(const char *checkpoint);
 long option(const char *name, long otherwise);
 int step_asked(const char *name);
 void vsay(const char *prefix, const char *fmt, va_list args);
+int b43_phy_versioning(struct b43_wldev *dev);
 __printf(1, 2) void say(const char *fmt, ...);
 
 unsigned long volatile jiffies = INITIAL_JIFFIES;
@@ -192,8 +194,6 @@ void b43_wireless_core_reset(struct b43_wldev *dev, bool gmode)
 		macctl |= B43_MACCTL_GMODE;
 	b43_write32(dev, B43_MMIO_MACCTL, macctl | B43_MACCTL_IHR_ENABLED);
 }
-
-#include "main_part.c"
 
 static struct ssbn_sprom sprom;
 static struct ssbn_bus ssb = { .bustype = SSBN_BUSTYPE_PCI };

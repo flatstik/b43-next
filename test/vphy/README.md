@@ -19,7 +19,8 @@ B43_STEPS=channels,power,periodic,rfkill \
   bus reset. `b43_mac_suspend()` and `b43_mac_enable()` only flip `MACCONTROL`.
 - `host.c` is the pipe to the chip, the trace and the allocator. The trace has
   one line per access in the op classes of b43-tools' `interpreter/README.md`,
-  `WAIT` for the time that passes and a `#` line at each checkpoint.
+  `WAIT` for the time that passes, `FN.IN`/`FN.OUT` for each PHY function
+  entered and left (named through `nm`) and a `#` line at each checkpoint.
 
 The board comes from the environment: `B43_CORE_REV`, `B43_CHIP_ID`,
 `B43_BOARDFLAGS`, `B43_PA0B0..2`, `B43_TXPOWER` and the others read in

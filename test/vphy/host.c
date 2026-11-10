@@ -9,7 +9,8 @@
  * per access, in the op classes of b43-tools' interpreter/README.md: PHY and
  * radio accesses folded from their address and data ports, the rest as REG
  * (eight digits for a 32-bit access), WAIT for the time the driver lets pass
- * and a # line at each checkpoint.
+ * and a # line at each checkpoint. FN.IN and FN.OUT name the PHY function
+ * entered and left, from the executable's own symbol table.
  */
 #define _GNU_SOURCE
 #include <stdarg.h>
@@ -119,6 +120,72 @@ void chip_state(const char *checkpoint)
 		fprintf(trace, "# %s\n", checkpoint);
 }
 
+struct sym {
+	unsigned long at;
+	char name[64];
+};
+
+static struct sym *syms;
+static size_t nsyms;
+
+static int sym_cmp(const void *a, const void *b)
+{
+	unsigned long x = ((const struct sym *)a)->at, y = ((const struct sym *)b)->at;
+
+	return x < y ? -1 : x > y;
+}
+
+static void load_syms(void)
+{
+	char exe[4096], line[4352], type;
+	ssize_t n = readlink("/proc/self/exe", exe, sizeof(exe) - 1);
+	size_t cap = 0;
+	struct sym s;
+	FILE *nm;
+
+	if (n < 0)
+		die("cannot find the executable");
+	exe[n] = 0;
+	snprintf(line, sizeof(line), "nm --defined-only '%s'", exe);
+	nm = popen(line, "r");
+	if (!nm)
+		die("cannot run nm");
+	while (fgets(line, sizeof(line), nm)) {
+		if (sscanf(line, "%lx %c %63s", &s.at, &type, s.name) != 3 ||
+		    (type != 't' && type != 'T'))
+			continue;
+		if (nsyms == cap) {
+			cap = cap ? 2 * cap : 1024;
+			syms = realloc(syms, cap * sizeof(*syms));
+			if (!syms)
+				die("out of memory");
+		}
+		syms[nsyms++] = s;
+	}
+	pclose(nm);
+	qsort(syms, nsyms, sizeof(*syms), sym_cmp);
+}
+
+static const char *sym_name(void *fn)
+{
+	struct sym key = { .at = (unsigned long)fn };
+	struct sym *s = bsearch(&key, syms, nsyms, sizeof(*syms), sym_cmp);
+
+	return s ? s->name : "?";
+}
+
+void __cyg_profile_func_enter(void *fn, void *site)
+{
+	if (trace)
+		fprintf(trace, "cpu0 FN.IN    fn=%s\n", sym_name(fn));
+}
+
+void __cyg_profile_func_exit(void *fn, void *site)
+{
+	if (trace)
+		fprintf(trace, "cpu0 FN.OUT   fn=%s\n", sym_name(fn));
+}
+
 void vsay(const char *prefix, const char *fmt, va_list args)
 {
 	fputs(prefix, stdout);
@@ -176,6 +243,7 @@ int main(int argc, char **argv)
 		trace = fopen(argv[at + 1], "w");
 		if (!trace)
 			die("cannot write the trace");
+		load_syms();
 		at += 2;
 	}
 	if (at + 1 >= argc || strcmp(argv[at], "--"))
