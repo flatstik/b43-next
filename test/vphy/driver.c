@@ -19,6 +19,8 @@
  *              the PHY
  *   periodic   pwork_15sec and pwork_60sec, each when it is due
  *   rfkill     the radio off and on again
+ *   interf     each interference mitigation mode, then none again
+ *   antenna    each RX antenna setting
  */
 #include <linux/bitrev.h>
 #include <net/mac80211.h>
@@ -340,6 +342,34 @@ static void rfkill(struct b43_wldev *dev)
 	checkpoint(dev, "rfkill unblocked");
 }
 
+static void interf(struct b43_wldev *dev)
+{
+	static const int modes[] = { B43_INTERFMODE_NONWLAN, B43_INTERFMODE_MANUALWLAN,
+				     B43_INTERFMODE_AUTOWLAN, B43_INTERFMODE_NONE };
+	int i, err;
+
+	if (!dev->phy.ops->interf_mitigation)
+		return;
+	for (i = 0; i < ARRAY_SIZE(modes); i++) {
+		err = dev->phy.ops->interf_mitigation(dev, modes[i]);
+		checkpoint(dev, "interf %d%s", modes[i], err ? " refused" : "");
+	}
+}
+
+static void antenna(struct b43_wldev *dev)
+{
+	static const int settings[] = { B43_ANTENNA0, B43_ANTENNA1, B43_ANTENNA_AUTO0,
+					B43_ANTENNA_AUTO1, B43_ANTENNA_DEFAULT };
+	int i;
+
+	if (!dev->phy.ops->set_rx_antenna)
+		return;
+	for (i = 0; i < ARRAY_SIZE(settings); i++) {
+		dev->phy.ops->set_rx_antenna(dev, settings[i]);
+		checkpoint(dev, "antenna %d", settings[i]);
+	}
+}
+
 int drive(void)
 {
 	struct b43_wldev *dev = &wldev;
@@ -374,5 +404,9 @@ int drive(void)
 		periodic(dev);
 	if (step_asked("rfkill"))
 		rfkill(dev);
+	if (step_asked("interf"))
+		interf(dev);
+	if (step_asked("antenna"))
+		antenna(dev);
 	return 0;
 }
