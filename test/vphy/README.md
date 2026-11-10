@@ -25,3 +25,16 @@ B43_STEPS=channels,power,periodic,rfkill \
 The board comes from the environment: `B43_CORE_REV`, `B43_CHIP_ID`,
 `B43_BOARDFLAGS`, `B43_PA0B0..2`, `B43_TXPOWER` and the others read in
 `driver.c`.
+
+## Field inventory
+
+```sh
+make preprocessed
+VCHIPD=.../interpreter/vchipd.py ./inventory.sh     # build/inventory/fields.tsv
+```
+
+`inventory.sh` runs the G boards and board options listed in it with every
+step, then `fields.py` puts the accessor calls of the preprocessed files next
+to the traces: one row per bit field of a PHY or radio register, as its
+docstring describes. Registers that only a loop over a computed register
+number writes are tables in register space and get one `range` row.

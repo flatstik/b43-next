@@ -46,8 +46,18 @@ MAIN_PART := b43_ram_write b43_shm_control_word b43_shm_read32 b43_shm_read16 \
 
 OBJS := $(PHY:%.c=build/%.o) build/main_part.o build/driver.o build/host.o
 
-.PHONY: all clean
+.PHONY: all preprocessed clean
 all: b43phy
+
+# The PHY files as the compiler sees them, for fields.py.
+preprocessed: $(PHY:%.c=build/%.i) build/main_part.i
+
+build/main_part.i: build/main_part.c
+	$(CC) -E $< -o $@ $(KFLAGS)
+
+build/%.i: $(B43)/%.c
+	@mkdir -p build
+	$(CC) -E $< -o $@ $(KFLAGS)
 
 build/main_part.c: $(B43)/main.c extract.py
 	@mkdir -p build
