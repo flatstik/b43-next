@@ -102,7 +102,9 @@ static ssize_t b43_attr_interfmode_store(struct device *dev,
 
 	mutex_lock(&wldev->wl->mutex);
 
-	if (wldev->phy.ops->interf_mitigation) {
+	if (b43_status(wldev) < B43_STAT_INITIALIZED) {
+		err = -ENODEV;
+	} else if (wldev->phy.ops->interf_mitigation) {
 		err = wldev->phy.ops->interf_mitigation(wldev, mode);
 		if (err) {
 			b43err(wldev->wl, "Interference Mitigation not "

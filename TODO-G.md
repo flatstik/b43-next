@@ -177,8 +177,8 @@ Check: the two warnings are gone.
 Applies: any G-PHY, when `interference` is written while the interface is
 down.
 
-`b43_attr_interfmode_store()` goes to the PHY registers without looking at the
-device status.
+Changed, to confirm: the write fails with `-ENODEV` unless the device is
+initialised.
 
 Check: the write returns the error. Every init sets the mode back to 0 anyway.
 
