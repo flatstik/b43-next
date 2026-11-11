@@ -198,8 +198,7 @@ Check: PHY 0x401 and PHY 0x429 before the mode and after it is left.
 Applies: never today. `b43_gphy_aci_scan()` is only called from a branch of
 `b43_gphy_op_pwork_15sec()` that is disabled with `0 /*TODO*/`.
 
-`b43_gphy_aci_detect()` makes its 6 bit readings signed in `u16` variables: a
-negative reading compares above a positive one.
+Changed, to confirm: the readings are `int`, so the comparison is signed.
 
 Check: none until the scan is enabled. The sign test is `> 32` here and `>=
 0x20` everywhere else.

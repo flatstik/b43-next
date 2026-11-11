@@ -2256,7 +2256,8 @@ static u8 b43_gphy_aci_detect(struct b43_wldev *dev, u8 channel)
 	struct b43_phy *phy = &dev->phy;
 	struct b43_phy_g *gphy = phy->g;
 	u8 ret = 0;
-	u16 saved, rssi, temp;
+	u16 saved;
+	int rssi, temp;
 	int i, j = 0;
 
 	saved = b43_phy_read(dev, 0x0403);
