@@ -1888,8 +1888,10 @@ static void b43_hardware_pctl_init_gphy(struct b43_wldev *dev)
 		return;
 	}
 
-	b43_phy_maskset(dev, 0x0036, 0xFFC0, (gphy->tgt_idle_tssi - gphy->cur_idle_tssi));
-	b43_phy_maskset(dev, 0x0478, 0xFF00, (gphy->tgt_idle_tssi - gphy->cur_idle_tssi));
+	b43_phy_maskset(dev, 0x0036, 0xFFC0,
+			(gphy->tgt_idle_tssi - gphy->cur_idle_tssi) & 0x3F);
+	b43_phy_maskset(dev, 0x0478, 0xFF00,
+			(gphy->tgt_idle_tssi - gphy->cur_idle_tssi) & 0xFF);
 	b43_gphy_tssi_power_lt_init(dev);
 	b43_gphy_gain_lt_init(dev);
 	b43_phy_mask(dev, 0x0060, 0xFFBF);

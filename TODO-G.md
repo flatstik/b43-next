@@ -272,8 +272,8 @@ Check: PHY 0x380-0x39F in the same capture.
 Applies: `hwpctl=1` (`/sys/module/b43/parameters/hwpctl`) and PHY revision 6
 or higher.
 
-`b43_hardware_pctl_init_gphy()` ORs target minus current idle TSSI into PHY
-0x36 and PHY 0x478: a negative delta sets every bit above the field.
+Changed, to confirm: the delta is cut to the 6 bits of PHY 0x36 and the 8 of
+PHY 0x478.
 
 Check: PHY 0x36 and PHY 0x478 in the same capture.
 
