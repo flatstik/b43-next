@@ -65,7 +65,8 @@ Check: PHY 0x44E, 0x44F, 0x4BB, 0x4BC on a rev 1 board with boardflags
 
 ### Flag of the 5354 PR45960 workaround
 
-FEM_BT in the code, `0x00100000` (PHASESHIFT) in the specs, step 39.
+Changed, to confirm: PHASESHIFT (`0x00100000`) as in the specs, step 39,
+instead of FEM_BT.
 
 Check: on a 5354 in the 4712S package, whether PHY 0x4BF = 5 and
 0x4BE = 0xFFFF are written, with the board's flags.

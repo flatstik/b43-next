@@ -306,7 +306,7 @@ static void lpphy_baseband_rev0_1_init(struct b43_wldev *dev)
 		b43_phy_copy(dev, B43_LPPHY_TR_LOOKUP_7, B43_LPPHY_TR_LOOKUP_3);
 		b43_phy_copy(dev, B43_LPPHY_TR_LOOKUP_8, B43_LPPHY_TR_LOOKUP_4);
 	}
-	if ((sprom->boardflags_hi & B43_BFH_FEM_BT) &&
+	if ((sprom->boardflags_hi & B43_BFH_PHASESHIFT) &&
 	    (dev->dev->chip_id == 0x5354) &&
 	    (dev->dev->chip_pkg == SSBN_CHIPPACK_BCM4712S)) {
 		b43_phy_set(dev, B43_LPPHY_CRSGAIN_CTL, 0x0006);
