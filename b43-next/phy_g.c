@@ -2027,7 +2027,8 @@ static void b43_phy_initg(struct b43_wldev *dev)
 		tmp &= B43_PHYVER_VERSION;
 		if (tmp == 3 || tmp == 5) {
 			b43_phy_write(dev, B43_PHY_OFDM(0xC2), 0x1816);
-			b43_phy_write(dev, B43_PHY_OFDM(0xC3), 0x8006);
+			b43_phy_write(dev, B43_PHY_OFDM(0xC3),
+				      tmp == 3 ? 0x8606 : 0x8006);
 		}
 		if (tmp == 5) {
 			b43_phy_maskset(dev, B43_PHY_OFDM(0xCC), 0x00FF, 0x1F00);

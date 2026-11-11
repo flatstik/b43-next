@@ -94,8 +94,8 @@ count starts at 1.
 Applies: `PHY 0x400 & 0xFF` is 3. To read it, write `0x3FC 0x0 0x400` to
 `mmio16write`, `0x3FE` to `mmio16read`, then read `mmio16read`.
 
-`b43_phy_initg()` writes `0x8006` for revisions 3 and 5. Init/G in the specs
-and b43legacy write `0x8606` for 3.
+Changed, to confirm: `0x8606` for revision 3, as Init/G in the specs and
+b43legacy; `0x8006` stays for 5.
 
 Check: PHY 0x4C3 after init.
 
