@@ -30,8 +30,8 @@ delete the entry when it agrees.
 
 ### `rssi_gs` in AFE_RSSI_CTL_0 on rev0/1
 
-The specs write `vf | vc << 4 | gs << 10 | 0xA000` (Rev0BasebandInit, steps
-25-26); the code leaves `gs` out.
+Changed, to confirm: `gs` is written. The specs write
+`vf | vc << 4 | gs << 10 | 0xA000` (Rev0BasebandInit, steps 25-26).
 
 Check: the write to PHY 0x43D in the BCM4312 init. Only tells if
 `rssisav2g` is not 0.

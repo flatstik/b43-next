@@ -241,7 +241,8 @@ static void lpphy_baseband_rev0_1_init(struct b43_wldev *dev)
 				0xFFCF, 0x0020);
 		b43_lptab_write(dev, B43_LPTAB16(11, 7), 100);
 	}
-	tmp = lpphy->rssi_vf | lpphy->rssi_vc << 4 | 0xA000;
+	tmp = lpphy->rssi_vf | lpphy->rssi_vc << 4 | lpphy->rssi_gs << 10 |
+	      0xA000;
 	b43_phy_write(dev, B43_LPPHY_AFE_RSSI_CTL_0, tmp);
 	if (sprom->boardflags_hi & B43_BFH_RSSIINV)
 		b43_phy_maskset(dev, B43_LPPHY_AFE_RSSI_CTL_1, 0xF000, 0x0AAA);
