@@ -657,11 +657,10 @@ static void lpphy_sync_stx(struct b43_wldev *dev)
 
 	for (i = 0; i < ARRAY_SIZE(lpphy_stx_table); i++) {
 		e = &lpphy_stx_table[i];
-		tmp = b43_radio_read(dev, e->rf_addr);
-		tmp >>= e->rf_shift;
-		tmp <<= e->phy_shift;
+		tmp = (b43_radio_read(dev, e->rf_addr) >> e->rf_shift) & e->mask;
 		b43_phy_maskset(dev, B43_PHY_OFDM(0xF2 + e->phy_offset),
-				~(e->mask << e->phy_shift), tmp);
+				~(e->mask << e->phy_shift),
+				tmp << e->phy_shift);
 	}
 }
 

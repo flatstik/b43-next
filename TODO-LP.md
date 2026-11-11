@@ -157,8 +157,8 @@ Also open in the same function:
 
 ### Field mask in `lpphy_sync_stx()`
 
-The whole shifted radio register is ORed in, as the specs read; wl's
-`mod_phy_reg()` cuts the value to the mask.
+Changed, to confirm: only the field is copied. The specs OR the whole
+shifted register in; wl's `mod_phy_reg()` cuts the value to the mask.
 
 Check: PHY 0x4F2-0x4F8 after the 2063 init, against the radio registers
 0x3D-0x52 read in the same capture.
