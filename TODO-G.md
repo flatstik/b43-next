@@ -144,8 +144,8 @@ Check: PHY 0x429 after init.
 
 Applies: G-PHY revision 1.
 
-`b43_wa_cck_shiftbits()` writes `0x26` to PHY 0x4A7. The specs
-(PHY/A/workarounds/CCK shiftbits) write `0x1A`, which is 26 in decimal.
+Changed, to confirm: `0x1A`, as the specs (PHY/A/workarounds/CCK shiftbits).
+It was `0x26`, the same number read as hexadecimal.
 
 Check: PHY 0x4A7 after init.
 

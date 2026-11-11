@@ -182,7 +182,7 @@ static void b43_wa_crs_blank(struct b43_wldev *dev)
 
 static void b43_wa_cck_shiftbits(struct b43_wldev *dev)
 {
-	b43_phy_write(dev, B43_PHY_CCKSHIFTBITS, 0x0026);
+	b43_phy_write(dev, B43_PHY_CCKSHIFTBITS, 0x001A);
 }
 
 static void b43_wa_wrssi_offset(struct b43_wldev *dev)
