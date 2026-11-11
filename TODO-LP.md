@@ -38,8 +38,9 @@ Check: the write to PHY 0x43D in the BCM4312 init. Only tells if
 
 ### Mask of the second write to TR_LOOKUP_1
 
-`0x3F00` in the code and in the specs (Rev0BasebandInit, step 34.2), `0xC0FF`
-on the seven writes next to it: it looks like a mask that was not inverted.
+Changed, to confirm: `0xC0FF`, as on the seven writes next to it. The specs
+have `0x3F00` (Rev0BasebandInit, step 34.2), taken as a mask that was not
+inverted.
 
 Check: PHY 0x44E after init on a rev 1 board with boardflags `0x00400000`
 (FEM_BT): low six bits `0x0A` and bits 8-13 `0x09` mean `0xC0FF`.
