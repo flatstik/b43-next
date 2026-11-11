@@ -47,8 +47,8 @@ Check: PHY 0x44E after init on a rev 1 board with boardflags `0x00400000`
 
 ### When TR lookups 1-4 are copied to 5-8
 
-The code copies on rev 1 with PAREF (`0x00040000`); the specs copy on rev 1
-without FEM_BT (`0x00400000`), step 38.
+Changed, to confirm: the copy is made on rev 1 without FEM_BT (`0x00400000`),
+as in the specs (step 38), and no longer with PAREF (`0x00040000`).
 
 Check: PHY 0x4C7-0x4CA in the BCM4312 init against 0x44E, 0x44F, 0x4BB,
 0x4BC, with the board's flags.
