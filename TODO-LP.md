@@ -113,9 +113,8 @@ it does on this chip.
 
 ### Initial TX power index override (unreachable)
 
-`-1` means no override in the code, but the state starts zeroed:
-`lpphy_pr41573_workaround()` forces index 0. What wl starts from is not known
-and a capture does not show it.
+Changed, to confirm: the override starts at `-1`, which means none in the
+code. What wl starts from is not known and a capture does not show it.
 
 ### PA gain from the rev2 TX gain table
 

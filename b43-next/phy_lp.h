@@ -862,8 +862,8 @@ struct b43_phy_lp {
 	/* Target TX frequency */
 	u16 tgt_tx_freq; /* FIXME initial value? */
 
-	/* Transmit power index override */
-	s8 tx_pwr_idx_over; /* FIXME initial value? */
+	/* Transmit power index override, -1 when no index is forced */
+	s8 tx_pwr_idx_over;
 
 	/* RSSI vf */
 	u8 rssi_vf;

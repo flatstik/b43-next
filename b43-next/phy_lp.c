@@ -58,6 +58,7 @@ static void b43_lpphy_op_prepare_structs(struct b43_wldev *dev)
 
 	memset(lpphy, 0, sizeof(*lpphy));
 	lpphy->antenna = B43_ANTENNA_DEFAULT;
+	lpphy->tx_pwr_idx_over = -1;
 
 	//TODO
 }
