@@ -260,8 +260,8 @@ static void b43_gphy_tssi_power_lt_init(struct b43_wldev *dev)
 	for (i = 32; i < 64; i++)
 		b43_ofdmtab_write16(dev, 0x3C00, i - 32, gphy->tssi2dbm[i]);
 	for (i = 0; i < 64; i += 2) {
-		value = (u16) gphy->tssi2dbm[i];
-		value |= ((u16) gphy->tssi2dbm[i + 1]) << 8;
+		value = (u8) gphy->tssi2dbm[i];
+		value |= ((u8) gphy->tssi2dbm[i + 1]) << 8;
 		b43_phy_write(dev, 0x380 + (i / 2), value);
 	}
 }

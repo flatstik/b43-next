@@ -261,9 +261,9 @@ Check: PHY 0x3A0-0x3BF in the same capture.
 Applies: `hwpctl=1` (`/sys/module/b43/parameters/hwpctl`) and PHY revision 6
 or higher.
 
-`b43_gphy_tssi_power_lt_init()` packs two `s8` entries in a word: a negative
-low entry sets the high byte to `0xFF`. The 64 single writes to OFDM tables
-0x3C00 and 0x3C20 are sign extended to 16 bits as well.
+Changed, to confirm: each entry is cut to its byte in the words of PHY 0x380.
+The 64 single writes to OFDM tables 0x3C00 and 0x3C20 are still sign extended
+to 16 bits.
 
 Check: PHY 0x380-0x39F in the same capture.
 
