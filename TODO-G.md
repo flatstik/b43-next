@@ -135,9 +135,8 @@ with hardware power control.
 
 Applies: G-PHY revision 1.
 
-`b43_wa_crs_thr()` clears bits 6-9 of PHY 0x429 and ORs `0xD000` in, outside
-the field. The specs (PHY/A/workarounds/CRS threshold) set `0x340` under the
-same mask.
+Changed, to confirm: `0x0340`, in the field the mask clears, as the specs
+(PHY/A/workarounds/CRS threshold). It was `0xD000`.
 
 Check: PHY 0x429 after init.
 

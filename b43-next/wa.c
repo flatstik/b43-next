@@ -172,7 +172,7 @@ static void b43_wa_crs_ed(struct b43_wldev *dev)
 
 static void b43_wa_crs_thr(struct b43_wldev *dev)
 {
-	b43_phy_maskset(dev, B43_PHY_CRS0, ~0x03C0, 0xD000);
+	b43_phy_maskset(dev, B43_PHY_CRS0, ~0x03C0, 0x0340);
 }
 
 static void b43_wa_crs_blank(struct b43_wldev *dev)
