@@ -1153,7 +1153,7 @@ static void lpphy_set_tx_power_control(struct b43_wldev *dev,
 			b43_phy_maskset(dev, B43_LPPHY_TX_PWR_CTL_CMD,
 					0xFF80, lpphy->tssi_idx);
 			b43_phy_maskset(dev, B43_LPPHY_TX_PWR_CTL_NNUM,
-					0x8FFF, ((u16)lpphy->tssi_npt << 16));
+					0xF8FF, lpphy->tssi_npt << 8);
 			//TODO Set "TSSI Transmit Count" variable to total transmitted frame count
 			lpphy_disable_tx_gain_override(dev);
 			lpphy->tx_pwr_idx_over = -1;

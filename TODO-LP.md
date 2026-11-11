@@ -105,8 +105,8 @@ for 10 s at most.
 
 ### `tssi_npt` in TX_PWR_CTL_NNUM (unreachable)
 
-`tssi_npt` is shifted by 16 into a u16 and written as 0, under mask `0x8FFF`.
-The specs (SetTXPwrCtrl) and the LCN-PHY have mask `0xF8FF`, shift 8.
+Changed, to confirm: mask `0xF8FF`, shift 8, from the specs (SetTXPwrCtrl)
+and from the LCN-PHY.
 
 Check: the write to PHY 0x4A5 when wl enters hardware TX power control, if
 it does on this chip.
