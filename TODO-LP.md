@@ -94,9 +94,9 @@ back to the init table is not known.
 
 ### Start of the rev2 TX RC calibration
 
-The TX half writes its `0x7D` to radio 0x52, as RCCalRev2 step 21 says; the
-RX half writes it to 0x5A (step 10), which starts the calibration. 0x52
-looks like a slip.
+Changed, to confirm, against the letter of the specs: the TX half writes its
+`0x7D` to radio 0x5A as the RX half does (step 10), not to 0x52 (RCCalRev2,
+step 21).
 
 Check: which radio register gets `0x7D` after the second 0x5D/0x5E pair.
 

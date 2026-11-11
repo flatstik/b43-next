@@ -1312,7 +1312,7 @@ static void lpphy_rev2plus_rc_calib(struct b43_wldev *dev)
 		b43_radio_write(dev, B2063_RC_CALIB_CTL5, 0x1);
 	}
 
-	b43_radio_write(dev, B2063_PA_SP7, 0x7D);
+	b43_radio_write(dev, B2063_RC_CALIB_CTL1, 0x7D);
 
 	for (i = 0; i < 10000; i++) {
 		if (b43_radio_read(dev, B2063_RC_CALIB_CTL6) & 0x2)
