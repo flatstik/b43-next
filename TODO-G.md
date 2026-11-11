@@ -171,9 +171,8 @@ Applies: PHY revision 3 or higher, when `2` and then another mode are written
 to the `interference` attribute. The kernel log shows the warning of
 `_stack_save()` at the first write and of `_stack_restore()` at the second.
 
-The stack keeps 12 bits of offset; the two OFDM table entries have offsets
-`0x1A02` and `0x1A03`. They are saved without the top bit and never found
-again, and the restore writes 0 to the table. b43legacy keeps 13 bits.
+Changed, to confirm: 13 bits of offset and 3 of id, as b43legacy, so the two
+OFDM table entries (`0x1A02`, `0x1A03`) are found again.
 
 Check: the two warnings are gone.
 

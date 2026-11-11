@@ -761,10 +761,10 @@ static void _stack_save(u32 *_stackptr, size_t *stackidx,
 {
 	u32 *stackptr = &(_stackptr[*stackidx]);
 
-	B43_WARN_ON(offset & 0xF000);
-	B43_WARN_ON(id & 0xF0);
+	B43_WARN_ON(offset & 0xE000);
+	B43_WARN_ON(id & 0xF8);
 	*stackptr = offset;
-	*stackptr |= ((u32) id) << 12;
+	*stackptr |= ((u32) id) << 13;
 	*stackptr |= ((u32) value) << 16;
 	(*stackidx)++;
 	B43_WARN_ON(*stackidx >= B43_INTERFSTACK_SIZE);
@@ -774,12 +774,12 @@ static u16 _stack_restore(u32 *stackptr, u8 id, u16 offset)
 {
 	size_t i;
 
-	B43_WARN_ON(offset & 0xF000);
-	B43_WARN_ON(id & 0xF0);
+	B43_WARN_ON(offset & 0xE000);
+	B43_WARN_ON(id & 0xF8);
 	for (i = 0; i < B43_INTERFSTACK_SIZE; i++, stackptr++) {
-		if ((*stackptr & 0x00000FFF) != offset)
+		if ((*stackptr & 0x00001FFF) != offset)
 			continue;
-		if (((*stackptr & 0x0000F000) >> 12) != id)
+		if (((*stackptr & 0x0000E000) >> 13) != id)
 			continue;
 		return ((*stackptr & 0xFFFF0000) >> 16);
 	}
