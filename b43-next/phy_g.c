@@ -2349,7 +2349,7 @@ static s8 b43_tssi2dbm_entry(s8 entry[], u8 index,
 		f = q;
 		i++;
 	} while (delta >= 2);
-	entry[index] = clamp_val(b43_tssi2dbm_ad(m1 * f, 8192), -127, 128);
+	entry[index] = clamp_val(b43_tssi2dbm_ad(m1 * f, 8192), -127, 127);
 	return 0;
 }
 

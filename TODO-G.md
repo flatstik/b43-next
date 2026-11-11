@@ -126,7 +126,7 @@ Applies: the PA parameters are set in the SPROM, so the table is generated,
 and an entry reaches 32 dBm. The three SPROM words in the formula of
 `b43_tssi2dbm_entry()` tell, or `B43_PA0B0..2` in `test/vphy`.
 
-The entry is clamped to 128 and stored in an `s8`, where it reads -128.
+Changed, to confirm: the clamp is 127; 128 stored in the `s8` read -128.
 
 Check: the arithmetic is enough. What wl clamps to shows in PHY 0x380-0x39F
 with hardware power control.
