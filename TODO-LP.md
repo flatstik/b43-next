@@ -73,8 +73,8 @@ Check: on a 5354 in the 4712S package, whether PHY 0x4BF = 5 and
 
 ### TX filter cap on channel 14
 
-The specs skip the `+ 5` on rev 1 when the channel is 14 (SetRCCap, step 3);
-the code adds it on every channel.
+Changed, to confirm: the `+ 5` is skipped on rev 1 when the channel is 14, as
+in the specs (SetRCCap, step 3).
 
 Check: radio 0x4F (north) on the BCM4312 tuned to 14 and to another channel:
 the low nibble differs by 5 if channel 14 is left out.

@@ -693,7 +693,8 @@ static void lpphy_set_rc_cap(struct b43_wldev *dev)
 
 	u8 rc_cap = (lpphy->rc_cap & 0x1F) >> 1;
 
-	if (dev->phy.rev == 1) //FIXME check channel 14!
+	/* Channel 14 has the wide TX filter and keeps the calibrated cap. */
+	if (dev->phy.rev == 1 && lpphy->channel != 14)
 		rc_cap = min_t(u8, rc_cap + 5, 15);
 
 	b43_radio_write(dev, B2062_N_RXBB_CALIB2,
@@ -2615,19 +2616,19 @@ static int b43_lpphy_op_switch_channel(struct b43_wldev *dev,
 	struct b43_phy_lp *lpphy = dev->phy.lp;
 	int err;
 
-	if (dev->phy.radio_ver == 0x2063) {
+	if (dev->phy.radio_ver == 0x2063)
 		err = lpphy_b2063_tune(dev, new_channel);
-		if (err)
-			return err;
-	} else {
+	else
 		err = lpphy_b2062_tune(dev, new_channel);
-		if (err)
-			return err;
+	if (err)
+		return err;
+
+	lpphy->channel = new_channel;
+	if (dev->phy.radio_ver != 0x2063) {
 		lpphy_set_analog_filter(dev, new_channel);
 		lpphy_adjust_gain_table(dev, channel2freq_lp(new_channel));
 	}
 
-	lpphy->channel = new_channel;
 	b43_write16(dev, B43_MMIO_CHANNEL, new_channel);
 
 	return 0;
