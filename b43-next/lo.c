@@ -846,8 +846,8 @@ void b43_gphy_dc_lt_init(struct b43_wldev *dev, bool update_all)
 			continue;
 		}
 		/*FIXME: Is Q really in the low nibble? */
-		val = (u8)(cal->ctl.q);
-		val |= ((u8)(cal->ctl.i)) << 4;
+		val = cal->ctl.q & 0xF;
+		val |= (cal->ctl.i & 0xF) << 4;
 		kfree(cal);
 
 		/* Get the index into the hardware DC LT. */

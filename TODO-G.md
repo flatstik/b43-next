@@ -250,9 +250,9 @@ power control.
 Applies: `hwpctl=1` (`/sys/module/b43/parameters/hwpctl`) and PHY revision 6
 or higher.
 
-A negative Q is cast to `u8` and covers the nibble of I. Which nibble is which
-is the `FIXME` of the code, and the values go to 16 while a nibble holds 4
-bits.
+Changed, to confirm: I and Q are cut to 4 bits each before they are put
+together. Which nibble is which is still the `FIXME` of the code, and the
+values go to 16.
 
 Check: PHY 0x3A0-0x3BF in the same capture.
 
