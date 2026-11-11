@@ -39,12 +39,10 @@ Applies: any board, when the core is initialised again within 176 s
 (`B43_LO_TXCTL_EXPIRE`) of the last TX control measurement; an interface down
 and up is enough. `loctls` then shows `TX Bias: 0xFF`.
 
-`b43_gphy_op_prepare_structs()` resets the TX bias to `0xFF`, not measured,
-but the time of the last measurement stays, so `lo_measure_setup()` skips the
-measurement until it expires. Meanwhile `b43_set_txpower_g()` uses a bias of 0
-and `b43_phy_initg()` writes the `0xFF` to radio 0x52 and, on PHY revision 6
-and higher, `0xF` to the top nibble of PHY 0x36. Init/G in the specs writes
-them only once the bias is known.
+Changed, to confirm: `lo_measure_setup()` measures the TX control values
+whenever the bias is `0xFF`, so `b43_phy_initg()` always has a measured one.
+`b43_gphy_op_prepare_structs()` still resets it at every init; Init/G in the
+specs measures when it is not set.
 
 Check: `loctls` right after the interface comes back up. In a capture, what wl
 leaves in radio 0x52 and PHY 0x36 after a second init.

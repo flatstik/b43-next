@@ -470,7 +470,8 @@ static void lo_measure_setup(struct b43_wldev *dev,
 		b43_phy_write(dev, B43_PHY_CCK(0x2F), 0);
 
 	/* Re-measure the txctl values, if needed. */
-	if (time_before(lo->txctl_measured_time,
+	if (lo->tx_bias == 0xFF ||
+	    time_before(lo->txctl_measured_time,
 			jiffies - B43_LO_TXCTL_EXPIRE))
 		lo_measure_txctl_values(dev);
 
