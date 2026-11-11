@@ -2031,7 +2031,7 @@ static void b43_phy_initg(struct b43_wldev *dev)
 			b43_phy_maskset(dev, B43_PHY_OFDM(0xCC), 0x00FF, 0x1F00);
 		}
 	}
-	if ((phy->rev <= 2 && phy->gmode) || phy->rev >= 2)
+	if (phy->rev <= 2 && phy->gmode)
 		b43_phy_write(dev, B43_PHY_OFDM(0x7E), 0x78);
 	if (phy->radio_rev == 8) {
 		b43_phy_set(dev, B43_PHY_EXTG(0x01), 0x80);

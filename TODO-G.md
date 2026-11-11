@@ -103,9 +103,8 @@ Check: PHY 0x4C3 after init.
 
 Applies: revision 3 or higher.
 
-The code writes `0x78` when `(rev <= 2 && gmode) || rev >= 2`, so on every
-revision from 2 up. Init/G in the specs writes it on revision 2 in G mode
-only.
+Changed, to confirm: `0x78` is written on revisions 1 and 2 in G mode only.
+Init/G in the specs names revision 2.
 
 Check: whether PHY 0x47E is written during init.
 
