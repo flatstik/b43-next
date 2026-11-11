@@ -81,9 +81,9 @@ Check: PHY 0x812 during wl's LO measurement: bit 5 against the gain asked for.
 Applies: radio revision other than 8 (`b43_radio_init2050()` is not called for
 8), in G mode.
 
-`radio2050_rfover_val()` subtracts `i * 6` from the gain at every pass, so the
-passes add up: for a gain of 30 the step is 3. Radio/Init/2050 in the specs
-takes 6 off per pass and counts the passes from 0, which gives 5.
+Changed, to confirm: the gain goes down by 6 at each pass and the passes are
+counted from 1, up to 16: 6 for a gain of 30. Radio/Init/2050 in the specs
+counts them from 0.
 
 Check: bits 8-11 of the values written to PHY 0x812 during the 2050 init,
 against the loopback gain measured just before. A gain under 6 gives 1 if the

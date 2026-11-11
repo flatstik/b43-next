@@ -1130,10 +1130,10 @@ static u16 radio2050_rfover_val(struct b43_wldev *dev,
 			max_lb_gain -= 0x10;
 		}
 
-		for (i = 0; i < 16; i++) {
-			max_lb_gain -= (i * 6);
+		for (i = 1; i < 16; i++) {
 			if (max_lb_gain < 6)
 				break;
+			max_lb_gain -= 6;
 		}
 
 		if ((phy->rev < 7) ||
