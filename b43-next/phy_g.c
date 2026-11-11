@@ -376,16 +376,18 @@ static s16 b43_nrssi_hw_read(struct b43_wldev *dev, u16 offset)
 }
 
 /* https://bcm-specs.sipsolutions.net/NRSSILookupTable */
-static void b43_nrssi_hw_update(struct b43_wldev *dev, u16 val)
+static void b43_nrssi_hw_update(struct b43_wldev *dev, s32 delta)
 {
 	u16 i;
-	s16 tmp;
+	s32 tmp;
 
 	for (i = 0; i < 64; i++) {
-		tmp = b43_nrssi_hw_read(dev, i);
-		tmp -= val;
+		tmp = b43_nrssi_hw_read(dev, i) & 0x3F;
+		if (tmp >= 0x20)
+			tmp -= 0x40;
+		tmp = (s32)((u32)tmp - (u32)delta);
 		tmp = clamp_val(tmp, -32, 31);
-		b43_nrssi_hw_write(dev, i, tmp);
+		b43_nrssi_hw_write(dev, i, tmp & 0x3F);
 	}
 }
 
@@ -2077,13 +2079,11 @@ static void b43_phy_initg(struct b43_wldev *dev)
 	}
 
 	if (!(dev->dev->bus_sprom->boardflags_lo & B43_BFL_RSSI)) {
-		/* The specs state to update the NRSSI LT with
-		 * the value 0x7FFFFFFF here. I think that is some weird
-		 * compiler optimization in the original driver.
-		 * Essentially, what we do here is resetting all NRSSI LT
-		 * entries to -32 (see the clamp_val() in nrssi_hw_update())
+		/* The specs state to update the NRSSI LT with the value
+		 * 0x7FFFFFFF here. In 32 bits that leaves the entries from
+		 * -1 up at -32 and wraps the ones below to 31.
 		 */
-		b43_nrssi_hw_update(dev, 0xFFFF);	//FIXME?
+		b43_nrssi_hw_update(dev, 0x7FFFFFFF);
 		b43_calc_nrssi_threshold(dev);
 	} else if (phy->gmode || phy->rev >= 2) {
 		if (gphy->nrssi[0] == -1000) {

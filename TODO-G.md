@@ -112,11 +112,10 @@ Check: whether PHY 0x47E is written during init.
 
 Applies: boardflags bit `0x0008` is clear, at every init.
 
-`b43_phy_initg()` calls `b43_nrssi_hw_update(dev, 0xFFFF)` and its comment
-says that floors every entry at -32. In 16 bits it adds 1 to every entry
-instead. The specs (PHY/G/NRSSI) take the entries as 6 bit signed values,
-subtract the delta and clamp; the delta the comment quotes from them is
-`0x7FFFFFFF`.
+Changed, to confirm: the entries are read as 6 bit signed values, `0x7FFFFFFF`
+is subtracted in 32 bits and the result is clamped and written in 6 bits, as
+the specs (PHY/G/NRSSI) describe the update. Entries from -1 up end at -32,
+the ones below wrap to 31.
 
 Check: the 64 writes to PHY 0x804 during init.
 
@@ -309,8 +308,6 @@ the names that say unknown, by file and function.
   accesses to PHY 0x814 and 0x815 skipped for revision 1.
 - `b43_phy_initb6()`: `We had code for these revs here...`, a warning for
   radio revisions 6 and 7.
-- `b43_phy_initg()`: `//FIXME?` on `b43_nrssi_hw_update()`; see the NRSSI
-  entry.
 - `b43_phy_initg()`: `FIXME: The spec says ... 'if OFDM may not be used in
   the current locale'`, with the condition fixed to `|| 0`.
 - `b43_gphy_op_prepare_hardware()`: `Workaround: Temporarly disable gmode
