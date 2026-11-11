@@ -153,9 +153,8 @@ Check: PHY 0x4A7 after init.
 
 Applies: G-PHY revision 2.
 
-`b43_wa_msst()` uploads `b43_tab_sigmasqr2` on every G-PHY. The specs
-(PHY/A/workarounds/minimum sigma square table) upload the first table on
-revision 2. Nothing uses `b43_tab_sigmasqr1` any more.
+Changed, to confirm: `b43_tab_sigmasqr1` on revision 2, as the specs
+(PHY/A/workarounds/minimum sigma square table).
 
 Check: the first value written to OFDM table 0x14 during init: `0x007A` is the
 first table, `0x00DE` the second.

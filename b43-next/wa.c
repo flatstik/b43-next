@@ -140,7 +140,7 @@ static void b43_wa_msst(struct b43_wldev *dev) /* Min sigma square table */
 	const u16 *tab;
 
 	if (phy->type == B43_PHYTYPE_G) {
-		tab = b43_tab_sigmasqr2;
+		tab = phy->rev == 2 ? b43_tab_sigmasqr1 : b43_tab_sigmasqr2;
 	} else {
 		B43_WARN_ON(1);
 		return;
