@@ -871,14 +871,15 @@ static void lpphy_set_dac_gain(struct b43_wldev *dev, u16 dac)
 	b43_phy_maskset(dev, B43_LPPHY_AFE_DAC_CTL, 0xF000, ctl);
 }
 
+/* PHY 0x4FB and 0x4FD: the PAD gain in bits 0-7, the PA gain in bits 8-14. */
 static u16 lpphy_get_pa_gain(struct b43_wldev *dev)
 {
-	return b43_phy_read(dev, B43_PHY_OFDM(0xFB)) & 0x7F;
+	return (b43_phy_read(dev, B43_PHY_OFDM(0xFB)) & 0x7F00) >> 8;
 }
 
 static void lpphy_set_pa_gain(struct b43_wldev *dev, u16 gain)
 {
-	b43_phy_maskset(dev, B43_PHY_OFDM(0xFB), 0xE03F, gain << 6);
+	b43_phy_maskset(dev, B43_PHY_OFDM(0xFB), 0x80FF, gain << 8);
 	b43_phy_maskset(dev, B43_PHY_OFDM(0xFD), 0x80FF, gain << 8);
 }
 
@@ -895,12 +896,8 @@ static void lpphy_set_tx_gains(struct b43_wldev *dev,
 		pa_gain = lpphy_get_pa_gain(dev);
 		b43_phy_write(dev, B43_LPPHY_TX_GAIN_CTL_OVERRIDE_VAL,
 			      (gains.pga << 8) | gains.gm);
-		/*
-		 * SPEC FIXME The spec calls for (pa_gain << 8) here, but that
-		 * conflicts with the spec for set_pa_gain! Vendor driver bug?
-		 */
 		b43_phy_maskset(dev, B43_PHY_OFDM(0xFB),
-				0x8000, gains.pad | (pa_gain << 6));
+				0x8000, gains.pad | (pa_gain << 8));
 		b43_phy_write(dev, B43_PHY_OFDM(0xFC),
 			      (gains.pga << 8) | gains.gm);
 		b43_phy_maskset(dev, B43_PHY_OFDM(0xFD),

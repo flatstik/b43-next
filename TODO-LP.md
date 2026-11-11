@@ -126,9 +126,9 @@ Check: PHY 0x4FB and 0x4FD written after 0x4B5 when wl sets a power index.
 
 ### Layout of the PA gain in PHY 0x4FB
 
-The specs give three layouts (GetPAGain bits 0-6, SetPAGain bits 6-12,
-SetTXGain bits 8-14); the code reads bits 0-6 and writes bits 6-12. The
-LCN-PHY has bits 8-14 for all three.
+Changed, to confirm: bits 8-14 for the get and both sets, taken from the
+LCN-PHY, not from any LP-PHY evidence. The specs give three layouts
+(GetPAGain bits 0-6, SetPAGain bits 6-12, SetTXGain bits 8-14).
 
 Check: the value wl writes to 0x4FB on 2 GHz, where the table's PA gain is
 `0x7F`: `0x7Fxx` is bits 8-14, `0x1FC0 | pad` is bits 6-12.
