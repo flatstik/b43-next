@@ -68,12 +68,11 @@ and software power control; `loctls` on the same card.
 Applies: every G-PHY of revision 2 or higher, and revision 1 in G mode, at
 each LO calibration.
 
-MeasuringGains in the specs gives a TRSW_RX value: `0x20` when the RX gain
-wanted covers the gain of the switch, 0 otherwise. The code has no such value:
-`lo_measure_feedthrough()` gets `trsw_rx_gain`, the gain measured by
-`b43_calc_loopback_gain()`, cut to the bits of the field, which is why its
-assertion is disabled. When the gain wanted is below the gain of the switch,
-the gain of the switch is used in its place.
+Changed, to confirm: `lo_measure_gain_values()` sets `trsw_rx` to `0x20` when
+the RX gain wanted covers the gain of the switch and to 0 otherwise, as
+MeasuringGains in the specs, and the feedthrough is measured with it. Below
+the gain of the switch the whole gain goes to the LNA and the PGA. The
+assertion of `lo_measure_feedthrough()` is back.
 
 Check: PHY 0x812 during wl's LO measurement: bit 5 against the gain asked for.
 
@@ -336,8 +335,6 @@ the names that say unknown, by file and function.
 
 `lo.c`:
 
-- `lo_measure_feedthrough()`: `FIXME This assertion fails`, around the
-  disabled assertion on `trsw_rx`; see the T/R switch entry.
 - `b43_gphy_dc_lt_init()`: `FIXME: Is Q really in the low nibble?`.
 - `b43_lo_g_maintenance_work()`: `FIXME Recalc the whole DC table from time
   to time?`.

@@ -158,6 +158,7 @@ struct b43_phy_g {
 	/* Values from b43_calc_loopback_gain() */
 	s16 max_lb_gain;	/* Maximum Loopback gain in hdB */
 	s16 trsw_rx_gain;	/* TRSW RX gain in hdB */
+	u16 trsw_rx;		/* TRSW RX */
 	s16 lna_lod_gain;	/* LNA lod */
 	s16 lna_gain;		/* LNA */
 	s16 pga_gain;		/* PGA */

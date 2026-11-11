@@ -75,10 +75,8 @@ static u16 lo_measure_feedthrough(struct b43_wldev *dev,
 
 		B43_WARN_ON(lna & ~B43_PHY_RFOVERVAL_LNA);
 		B43_WARN_ON(pga & ~B43_PHY_RFOVERVAL_PGA);
-/*FIXME This assertion fails		B43_WARN_ON(trsw_rx & ~(B43_PHY_RFOVERVAL_TRSWRX |
+		B43_WARN_ON(trsw_rx & ~(B43_PHY_RFOVERVAL_TRSWRX |
 				    B43_PHY_RFOVERVAL_BW));
-*/
-		trsw_rx &= (B43_PHY_RFOVERVAL_TRSWRX | B43_PHY_RFOVERVAL_BW);
 
 		/* Construct the RF Override Value */
 		rfover = B43_PHY_RFOVERVAL_UNK;
@@ -288,15 +286,13 @@ static void lo_measure_gain_values(struct b43_wldev *dev,
 		max_rx_gain = 0;
 
 	if (has_loopback_gain(phy)) {
-		int trsw_rx_gain;
+		int trsw_rx_gain = max_rx_gain;
 
-		if (use_trsw_rx) {
-			trsw_rx_gain = gphy->trsw_rx_gain / 2;
-			if (max_rx_gain >= trsw_rx_gain) {
-				trsw_rx_gain = max_rx_gain - trsw_rx_gain;
-			}
-		} else
-			trsw_rx_gain = max_rx_gain;
+		gphy->trsw_rx = 0;
+		if (use_trsw_rx && max_rx_gain >= gphy->trsw_rx_gain / 2) {
+			trsw_rx_gain -= gphy->trsw_rx_gain / 2;
+			gphy->trsw_rx = 0x20;
+		}
 		if (trsw_rx_gain < 9) {
 			gphy->lna_lod_gain = 0;
 		} else {
@@ -312,7 +308,7 @@ static void lo_measure_gain_values(struct b43_wldev *dev,
 			gphy->lna_gain = 0;
 	} else {
 		gphy->lna_gain = 0;
-		gphy->trsw_rx_gain = 0x20;
+		gphy->trsw_rx = 0x20;
 		if (max_rx_gain >= 0x14) {
 			gphy->lna_lod_gain = 1;
 			gphy->pga_gain = 2;
@@ -617,7 +613,7 @@ static int lo_probe_possible_loctls(struct b43_wldev *dev,
 			b43_lo_write(dev, &test_loctl);
 			feedth = lo_measure_feedthrough(dev, gphy->lna_gain,
 							gphy->pga_gain,
-							gphy->trsw_rx_gain);
+							gphy->trsw_rx);
 			if (feedth < d->lowest_feedth) {
 				memcpy(probe_loctl, &test_loctl,
 				       sizeof(struct b43_loctl));
@@ -665,7 +661,7 @@ static void lo_probe_loctls_statemachine(struct b43_wldev *dev,
 		b43_lo_write(dev, &d.min_loctl);
 		feedth = lo_measure_feedthrough(dev, gphy->lna_gain,
 						gphy->pga_gain,
-						gphy->trsw_rx_gain);
+						gphy->trsw_rx);
 		if (feedth < 0x258) {
 			if (feedth >= 0x12C)
 				*max_rx_gain += 6;
@@ -673,7 +669,7 @@ static void lo_probe_loctls_statemachine(struct b43_wldev *dev,
 				*max_rx_gain += 3;
 			feedth = lo_measure_feedthrough(dev, gphy->lna_gain,
 							gphy->pga_gain,
-							gphy->trsw_rx_gain);
+							gphy->trsw_rx);
 		}
 		d.lowest_feedth = feedth;
 
