@@ -2490,6 +2490,7 @@ static int lpphy_b2063_tune(struct b43_wldev *dev,
 	u32 freqref, vco_freq, val1, val2, val3, timeout, timeoutref, count;
 	u16 old_comm15, scale;
 	u32 tmp1, tmp2, tmp3, tmp4, tmp5, tmp6;
+	s32 offset;
 	int i, div = (crystal_freq <= 26000000 ? 1 : 2);
 
 	for (i = 0; i < ARRAY_SIZE(b2063_chantbl); i++) {
@@ -2530,30 +2531,35 @@ static int lpphy_b2063_tune(struct b43_wldev *dev,
 	timeout = ((((8 * crystal_freq) / (div * 5000000)) + 1) >> 1) - 1;
 	b43_radio_write(dev, B2063_PLL_JTAG_PLL_VCO_CALIB3, 0x2);
 	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_VCO_CALIB6,
-			  0xFFF8, timeout >> 2);
+			  0xFFF8, (timeout >> 2) & 0x7);
 	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_VCO_CALIB7,
-			  0xFF9F,timeout << 5);
+			  0xFF9F, (timeout << 5) & 0x60);
 
 	timeoutref = ((((8 * crystal_freq) / (div * (timeout + 1))) +
-						999999) / 1000000) + 1;
+						999999) / 1000000) - 1;
 	b43_radio_write(dev, B2063_PLL_JTAG_PLL_VCO_CALIB5, timeoutref);
 
-	count = lpphy_qdiv_roundup(val3, val2 + 16, 16);
+	count = lpphy_qdiv_roundup(val3, val2 * 16, 16);
 	count *= (timeout + 1) * (timeoutref + 1);
-	count--;
+	count = ((count >> 15) + 1) >> 1;
 	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_VCO_CALIB7,
-						0xF0, count >> 8);
+			  0xF0, (count >> 8) & 0xF);
 	b43_radio_write(dev, B2063_PLL_JTAG_PLL_VCO_CALIB8, count & 0xFF);
 
-	tmp1 = ((val3 * 62500) / freqref) << 4;
-	tmp2 = ((val3 * 62500) % freqref) << 4;
+	/* The PLL divider: tmp1 its integer part, tmp2 its fraction in Q20. */
+	tmp1 = ((vco_freq * 62500) / freqref) << 4;
+	tmp2 = ((vco_freq * 62500) % freqref) << 4;
 	while (tmp2 >= freqref) {
 		tmp1++;
 		tmp2 -= freqref;
 	}
-	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_SG1, 0xFFE0, tmp1 >> 4);
-	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_SG2, 0xFE0F, tmp1 << 4);
-	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_SG2, 0xFFF0, tmp1 >> 16);
+	tmp2 = lpphy_qdiv_roundup(tmp2, freqref, 20);
+	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_SG1,
+			  0xFFE0, (tmp1 >> 4) & 0x1F);
+	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_SG2,
+			  0xFE0F, (tmp1 << 4) & 0x1F0);
+	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_SG2,
+			  0xFFF0, (tmp2 >> 16) & 0xF);
 	b43_radio_write(dev, B2063_PLL_JTAG_PLL_SG3, (tmp2 >> 8) & 0xFF);
 	b43_radio_write(dev, B2063_PLL_JTAG_PLL_SG4, tmp2 & 0xFF);
 
@@ -2562,7 +2568,7 @@ static int lpphy_b2063_tune(struct b43_wldev *dev,
 	b43_radio_write(dev, B2063_PLL_JTAG_PLL_LF3, 0x28);
 	b43_radio_write(dev, B2063_PLL_JTAG_PLL_LF4, 0x63);
 
-	tmp3 = ((41 * (val3 - 3000)) /1200) + 27;
+	tmp3 = ((41 * (val3 - (3000 << 16))) / 1200) + (27 << 16);
 	tmp4 = lpphy_qdiv_roundup(132000 * tmp1, 8451, 16);
 
 	if ((tmp4 + tmp3 - 1) / tmp3 > 60) {
@@ -2572,16 +2578,20 @@ static int lpphy_b2063_tune(struct b43_wldev *dev,
 		scale = 0;
 		tmp5 = ((tmp4 + (tmp3 >> 1)) / tmp3) - 8;
 	}
-	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_CP2, 0xFFC0, tmp5);
+	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_CP2, 0xFFC0, tmp5 & 0x3F);
 	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_CP2, 0xFFBF, scale << 6);
 
-	tmp6 = lpphy_qdiv_roundup(100 * val1, val3, 16);
-	tmp6 *= (tmp5 * 8) * (scale + 1);
-	if (tmp6 > 150)
-		tmp6 = 0;
+	tmp4 = lpphy_qdiv_roundup(100 * val1, val3, 16);
+	tmp4 *= (tmp5 + 8) * (scale + 1);
+	tmp6 = tmp4 > (150 << 16);
+	offset = tmp4 / (6 * (tmp6 + 1)) - (2 << 16);
+	if (offset < 0)
+		offset = 0;
+	else
+		offset = (((offset + 19) >> 15) + 1) >> 1;
 
-	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_CP3, 0xFFE0, tmp6);
-	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_CP3, 0xFFDF, scale << 5);
+	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_CP3, 0xFFE0, offset & 0x1F);
+	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_CP3, 0xFFDF, tmp6 << 5);
 
 	b43_radio_maskset(dev, B2063_PLL_JTAG_PLL_XTAL_12, 0xFFFB, 0x4);
 	if (crystal_freq > 26000000)

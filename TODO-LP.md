@@ -135,9 +135,8 @@ Check: the value wl writes to 0x4FB on 2 GHz, where the table's PA gain is
 
 ### 2063 PLL words
 
-`lpphy_b2063_tune()` multiplies a Q16 value by 62500 and overflows 32 bits:
-the divider, the calibration count and the charge pump words are wrong on
-every channel. Radio/2063ChannelTune computes them from the VCO frequency.
+Changed, to confirm: the words follow Radio/2063ChannelTune and agree with a
+separate implementation of it.
 
 Check: radio 0x7B-0x7E, 0x70-0x73, 0x68, 0x69 after a tune. For a 26 MHz
 crystal on channel 1 the specs give 0x7B = `0x09`, 0x7C low three bits 5,
