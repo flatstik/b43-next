@@ -208,8 +208,8 @@ Check: none until the scan is enabled. The sign test is `> 32` here and `>=
 Applies: never today. `b43_gphy_aci_scan()` is only called from a branch of
 `b43_gphy_op_pwork_15sec()` that is disabled with `0 /*TODO*/`.
 
-`b43_gphy_aci_scan()` returns `ret[channel - 1]` from an array of 13: on
-channel 14 it reads past it.
+Changed, to confirm: the array has 14 entries. The one of channel 14 is never
+set.
 
 Check: none until the scan is enabled.
 
