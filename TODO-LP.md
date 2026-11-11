@@ -81,7 +81,8 @@ the low nibble differs by 5 if channel 14 is left out.
 
 ### DDFS left running by a failed rev0/1 RC calibration
 
-Code reading only: the failure path skips `lpphy_stop_ddfs()`.
+Changed, to confirm, on code reading only: the failure path runs
+`lpphy_stop_ddfs()` too.
 
 Check: RCCalRev0 in the specs, not read yet. A capture does not show a
 failure path.

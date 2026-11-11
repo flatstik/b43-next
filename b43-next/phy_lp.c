@@ -1241,9 +1241,9 @@ static void lpphy_rev0_1_rc_calib(struct b43_wldev *dev)
 			mean_sq_pwr_min = inner_sum;
 		}
 	}
-	lpphy_stop_ddfs(dev);
 
 finish:
+	lpphy_stop_ddfs(dev);
 	lpphy_restore_crs(dev, true);
 	b43_phy_write(dev, B43_LPPHY_RF_OVERRIDE_VAL_0, old_rf_ovrval);
 	b43_phy_write(dev, B43_LPPHY_RF_OVERRIDE_0, old_rf_ovr);
