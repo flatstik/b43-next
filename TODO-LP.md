@@ -119,8 +119,8 @@ and a capture does not show it.
 
 ### PA gain from the rev2 TX gain table
 
-The specs call Set PA Gain on rev2+ (SetTXPwrbyIndex, step 14); the code
-calls it on rev0/1.
+Changed, to confirm: Set PA Gain is called on rev2+, as in the specs
+(SetTXPwrbyIndex, step 14), and no longer on rev0/1.
 
 Check: PHY 0x4FB and 0x4FD written after 0x4B5 when wl sets a power index.
 

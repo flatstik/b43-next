@@ -1384,15 +1384,15 @@ static void lpphy_set_tx_power_by_index(struct b43_wldev *dev, u8 index)
 		gains.pad = (tx_gain >> 16) & 0xFF;
 		gains.gm = tx_gain & 0xFF;
 		gains.pga = (tx_gain >> 8) & 0xFF;
-		gains.dac = (iq_comp >> 28) & 0xFF;
+		gains.dac = (iq_comp >> 28) & 0x7;
 		lpphy_set_tx_gains(dev, gains);
+		lpphy_set_pa_gain(dev, (tx_gain >> 24) & 0x7F);
 	} else {
 		iq_comp = b43_lptab_read(dev, B43_LPTAB32(10, index + 320));
 		tx_gain = b43_lptab_read(dev, B43_LPTAB32(10, index + 192));
 		b43_phy_maskset(dev, B43_LPPHY_TX_GAIN_CTL_OVERRIDE_VAL,
-				0xF800, (tx_gain >> 4) & 0x7FFF);
+				0xF800, (tx_gain >> 4) & 0x7FF);
 		lpphy_set_dac_gain(dev, tx_gain & 0x7);
-		lpphy_set_pa_gain(dev, (tx_gain >> 24) & 0x7F);
 	}
 	lpphy_set_bb_mult(dev, (iq_comp >> 20) & 0xFF);
 	lpphy_set_tx_iqcc(dev, (iq_comp >> 10) & 0x3FF, iq_comp & 0x3FF);
