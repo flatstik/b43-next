@@ -238,10 +238,9 @@ Check: PHY 0x48C after a fixed antenna is selected.
 Applies: `hwpctl=1` (`/sys/module/b43/parameters/hwpctl`) and PHY revision 6
 or higher.
 
-`b43_gphy_dc_lt_init()` takes entry `i` as baseband `i / rfatt_len`, RF `i %
-rfatt_len`. `b43_gphy_gain_lt_init()` and the specs (PHY/G/DC lookup table)
-run the RF list outside and the baseband list inside. With 7 by 9 values entry
-63 reads a tenth baseband attenuation.
+Changed, to confirm: entry `i` is RF `i / bbatt_len`, baseband `i %
+bbatt_len`, as `b43_gphy_gain_lt_init()` and the specs (PHY/G/DC lookup
+table). The entry past the last pair repeats it.
 
 Check: PHY 0x3A0-0x3BF against PHY 0x3C0-0x3FF in a capture with hardware
 power control.

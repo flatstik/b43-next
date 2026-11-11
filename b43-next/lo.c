@@ -805,7 +805,7 @@ void b43_gphy_dc_lt_init(struct b43_wldev *dev, bool update_all)
 	struct b43_phy_g *gphy = phy->g;
 	struct b43_txpower_lo_control *lo = gphy->lo_control;
 	int i;
-	int rf_offset, bb_offset;
+	int pair, rf_offset, bb_offset;
 	const struct b43_rfatt *rfatt;
 	const struct b43_bbatt *bbatt;
 	u64 power_vector;
@@ -830,9 +830,12 @@ void b43_gphy_dc_lt_init(struct b43_wldev *dev, bool update_all)
 		if (!update_all && !(power_vector & (((u64)1ULL) << i)))
 			continue;
 		/* Update the table entry for this power_vector bit.
-		 * The table rows are RFatt entries and columns are BBatt. */
-		bb_offset = i / lo->rfatt_list.len;
-		rf_offset = i % lo->rfatt_list.len;
+		 * The table rows are RFatt entries and columns are BBatt.
+		 * An entry past the last pair repeats it. */
+		pair = min_t(int, i, lo->rfatt_list.len *
+				     lo->bbatt_list.len - 1);
+		rf_offset = pair / lo->bbatt_list.len;
+		bb_offset = pair % lo->bbatt_list.len;
 		bbatt = &(lo->bbatt_list.list[bb_offset]);
 		rfatt = &(lo->rfatt_list.list[rf_offset]);
 
