@@ -2682,13 +2682,6 @@ static void b43_gphy_op_set_rx_antenna(struct b43_wldev *dev, int antenna)
 		tmp &= ~B43_PHY_ANTWRSETT_ARXDIV;
 	b43_phy_write(dev, B43_PHY_ANTWRSETT, tmp);
 
-	if (autodiv)
-		b43_phy_set(dev, B43_PHY_ANTWRSETT, B43_PHY_ANTWRSETT_ARXDIV);
-	else {
-		b43_phy_mask(dev, B43_PHY_ANTWRSETT,
-			     B43_PHY_ANTWRSETT_ARXDIV);
-	}
-
 	if (phy->rev >= 2) {
 		b43_phy_set(dev, B43_PHY_OFDM61, B43_PHY_OFDM61_10);
 		b43_phy_maskset(dev, B43_PHY_DIVSRCHGAINBACK, 0xFF00, 0x15);

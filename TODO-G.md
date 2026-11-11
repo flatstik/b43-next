@@ -229,9 +229,8 @@ Check: none until the scan is enabled.
 
 Applies: never today: only `B43_ANTENNA_DEFAULT` is passed.
 
-`b43_gphy_op_set_rx_antenna()` writes the diversity bit of PHY 0x48C twice.
-The second time, for a fixed antenna, it ANDs the register with the bit
-instead of its complement and clears everything else.
+Changed, to confirm: the second write is gone. The first already sets or
+clears the bit.
 
 Check: PHY 0x48C after a fixed antenna is selected.
 
