@@ -1,9 +1,10 @@
 #!/bin/sh
 # Scores b43's HT-PHY against the R6400 v1's cold captures, from the PHY init
-# to the BSS up, as ../unit/gates.sh does for the AC-PHY. The window runs from
-# wl's first PHY operation after the `up` mark to the end of `bss up`; b43
-# runs b43_phy_init() on the capture's channel, its reads served from the
-# window, and ../unit/cmp_skip.py --bus scores the two streams.
+# through `wl up`, as ../unit/gates.sh does for the AC-PHY. The window runs from
+# wl's first PHY operation after the `up` mark to the `ssid` mark: what wl
+# does when the BSS starts is not part of b43's up. b43 runs b43_phy_init()
+# on the capture's channel, its reads served from the window, and
+# ../unit/cmp_skip.py --bus scores the two streams.
 #
 #   ./gates.sh --min-block 8 --gap-tol 2 [CAPTURE...]
 #
@@ -37,7 +38,7 @@ for c in "$@"; do
 	ops=$T/$c.ops
 	zcat "$BOARD/traces/mmio-cold/$c-ops.txt.gz" > "$ops"
 	first=$(awk "/MARK 'up'/ { u = 1; next } u && / PHY\./ { print substr(\$2, 2); exit }" "$ops")
-	last=$(awk "/MARK 'beaconing'/ { print substr(\$2, 2) - 1; exit }" "$ops")
+	last=$(awk "/MARK 'ssid'/ { print substr(\$2, 2) - 1; exit }" "$ops")
 	ch=$(echo "$c" | sed 's/cold-2g\([0-9]*\).*/\1/')
 	echo "== $c, ops $first:$last, channel $ch"
 	HT_CHANNEL=$ch ./ht-trace full "$ops" "$first" "$last" -o "$T/$c.trace"
