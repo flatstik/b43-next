@@ -43,9 +43,10 @@ op; flow `ap_start` in `test/phy_ht`), in wl's order, and sets the TX power
 twice after it as wl does (#12660, #13536 on ch 6). What follows in wl is
 missing:
 
-- the RX I/Q calibration of the first pass (#17752-#24098); its TX I/Q
-  and LO calibration is in b43 (`b43_phy_ht_cal_tx_iq_lo()`) and matches
-  wl's to the value;
+- the end of the first pass (#24095-#24102): the control on, then the
+  indices restored per core; the pass's TX I/Q and LO and RX I/Q
+  calibrations are in b43 (`b43_phy_ht_cal_tx_iq_lo()`,
+  `b43_phy_ht_cal_rx_iq()`) and match wl's to the value;
 - a third setting of the TX power between the two passes (#25010);
 - two passes of calibration (#15069-#24098 and #26530-#35530 on ch 6).
   Each: the TX power control off with its indices saved, an idle TSSI

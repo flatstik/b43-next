@@ -55,21 +55,21 @@ All 14 windows pass.
 ## The start of the BSS
 
 When beaconing starts b43 initialises the HT-PHY again (its `bss_start`
-op), sets the TX power twice and runs the first calibration pass's TX
-I/Q and LO calibration, as wl does at `ssid`. `gates.sh` scores that too:
+op), sets the TX power twice and runs the first calibration pass, TX
+I/Q and LO then RX I/Q, as wl does at `ssid`. `gates.sh` scores that too:
 flow `ap_start`, on the PHY state the up left (the RC calibration's results
 and the table 0x25 pair, read off the capture's up), against the window from
 the `ssid` mark to `beaconing`, PHY and radio only. b43's operations there
 are wl's in order, but for the twelve of the analog switches of wl's core
-down and up, which b43 does not make; the TX I/Q and LO calibration
-matches wl's to the value, the RX I/Q calibration and the second pass are
-not in b43 yet.
+down and up, which b43 does not make; both calibrations match wl's to the
+value, coefficients included. The end of the pass, the TX power setting
+after it and the second pass are not in b43 yet.
 
 | capture | PHY+radio |
 |---|---|
-| cold-2g1-20 | 4677/20506 = 22.81% |
-| cold-2g6-20 | 4676/20517 = 22.79% |
-| cold-2g11-20 | 4671/20498 = 22.79% |
+| cold-2g1-20 | 10856/20501 = 52.95% |
+| cold-2g6-20 | 10856/20512 = 52.93% |
+| cold-2g11-20 | 10850/20493 = 52.94% |
 
 ## Exceptions
 
