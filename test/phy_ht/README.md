@@ -54,8 +54,8 @@ All 14 windows pass.
 
 ## The start of the BSS
 
-When beaconing starts b43 initialises the HT-PHY again
-(`b43_ht_phy_recycle()`), as wl does at `ssid`. `gates.sh` scores that too:
+When beaconing starts b43 initialises the HT-PHY again (its `bss_start`
+op) and sets the TX power twice, as wl does at `ssid`. `gates.sh` scores that too:
 flow `ap_start`, on the PHY state the up left (the RC calibration's results
 and the table 0x25 pair, read off the capture's up), against the window from
 the `ssid` mark to `beaconing`, PHY and radio only. b43's operations there
@@ -65,9 +65,9 @@ init are not in b43 yet.
 
 | capture | PHY+radio |
 |---|---|
-| cold-2g1-20 | 1552/20489 = 7.57% |
-| cold-2g6-20 | 1552/20500 = 7.57% |
-| cold-2g11-20 | 1552/20481 = 7.58% |
+| cold-2g1-20 | 2044/20495 = 9.97% |
+| cold-2g6-20 | 2044/20506 = 9.97% |
+| cold-2g11-20 | 2044/20487 = 9.98% |
 
 ## Exceptions
 

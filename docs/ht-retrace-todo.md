@@ -38,13 +38,12 @@ The PHY's calls into the core (`b43_mac_suspend()`, the shared memory,
 
 ## `ssid`
 
-b43 runs the later init when beaconing starts (`b43_ht_phy_recycle()`;
-flow `ap_start` in `test/phy_ht`), in wl's order up to the TX power control.
-What follows in wl is missing:
+b43 runs the later init when beaconing starts (the HT-PHY's `bss_start`
+op; flow `ap_start` in `test/phy_ht`), in wl's order, and sets the TX power
+twice after it as wl does (#12660, #13536 on ch 6). What follows in wl is
+missing:
 
-- the TX power recalculation of `b43_phy_ht_op_adjust_txpower()`, two or
-  three times inside the start of the BSS (#12660, #13536, #25010 on ch 6),
-  not on watchdog turns;
+- a third setting of the TX power between the two passes (#25010);
 - two passes of calibration (#15069-#24098 and #26530-#35530 on ch 6).
   Each: the TX power control off with its indices saved, an idle TSSI
   measurement as `b43_phy_ht_tx_power_ctl_idle_tssi()`, table 0x1a's late
