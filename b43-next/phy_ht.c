@@ -1415,9 +1415,10 @@ static void b43_phy_ht_op_adjust_txpower(struct b43_wldev *dev)
 
 /*
  * When the BSS starts, wl initialises the PHY again, on the radio and PHY
- * it has initialised once (no tables, no radio calibrations), then
- * calibrates. The core's down and up around it are left out, as in
- * b43_ac_phy_recycle(); what follows the init is not ported yet.
+ * it has initialised once (no tables, no radio calibrations), then sets
+ * the TX power twice and calibrates. The core's down and up around it are
+ * left out, as in b43_ac_phy_recycle(); the calibrations are not ported
+ * yet.
  */
 static void b43_phy_ht_op_bss_start(struct b43_wldev *dev)
 {
@@ -1425,6 +1426,8 @@ static void b43_phy_ht_op_bss_start(struct b43_wldev *dev)
 		b43_controller_restart(dev, "PHY init at the start of the BSS failed");
 		return;
 	}
+	b43_phy_ht_op_adjust_txpower(dev);
+	b43_phy_ht_op_adjust_txpower(dev);
 }
 
 /**************************************************
