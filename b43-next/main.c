@@ -4686,8 +4686,7 @@ static void b43_periodic_every15sec(struct b43_wldev *dev)
  */
 static unsigned int b43_periodic_ticks_per_15sec(struct b43_wldev *dev)
 {
-	return dev->phy.type == B43_PHYTYPE_AC && dev->phy.ops->pwork_1sec ?
-	       15 : 1;
+	return dev->phy.ops->pwork_1sec ? 15 : 1;
 }
 
 static void do_periodic_work(struct b43_wldev *dev)
@@ -4695,7 +4694,7 @@ static void do_periodic_work(struct b43_wldev *dev)
 	unsigned int ticks = b43_periodic_ticks_per_15sec(dev);
 	unsigned int state;
 
-	if (dev->phy.type == B43_PHYTYPE_AC && dev->phy.ops->pwork_1sec)
+	if (dev->phy.ops->pwork_1sec)
 		dev->phy.ops->pwork_1sec(dev);
 
 	if (dev->periodic_state % ticks)
