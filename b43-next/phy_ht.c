@@ -713,11 +713,8 @@ static void b43_phy_ht_tx_power_ctl_setup(struct b43_wldev *dev)
 			phy_ht->tssi_delay);
 	b43_phy_maskset(dev, B43_PHY_HT_TXPCTL_N, ~B43_PHY_HT_TXPCTL_N_NPTIL2,
 			0x3 << B43_PHY_HT_TXPCTL_N_NPTIL2_SHIFT);
-#if 0
-	/* TODO: what to mask/set? */
-	b43_phy_maskset(dev, B43_PHY_HT_TXPCTL_CMD_C1, 0x800, 0)
-	b43_phy_maskset(dev, B43_PHY_HT_TXPCTL_CMD_C1, 0x400, 0)
-#endif
+	b43_phy_mask(dev, B43_PHY_HT_TXPCTL_CMD_C1, ~0x0800);
+	b43_phy_mask(dev, B43_PHY_HT_TXPCTL_CMD_C1, ~0x0400);
 
 	b43_phy_maskset(dev, B43_PHY_HT_TXPCTL_TARG_PWR,
 			~B43_PHY_HT_TXPCTL_TARG_PWR_C1,
