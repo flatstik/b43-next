@@ -134,6 +134,10 @@ int ht_run_flow(const char *name)
 		dev->phy.ops->switch_analog(dev, true);
 		dev->phy.ops->switch_analog(dev, true);
 		b43_phy_init(dev);
+		/* mac80211's first config sets the power: the check, then its work */
+		b43_phy_txpower_check(dev, B43_TXPWR_IGNORE_TIME |
+				      B43_TXPWR_IGNORE_TSSI);
+		dev->phy.ops->adjust_txpower(dev);
 	} else if (!strcmp(name, "pctl_init")) {
 		/* The TX power control at the end of b43_phy_ht_op_init() */
 		bool saved = phy_ht.tx_pwr_ctl;
@@ -175,7 +179,7 @@ void mutex_lock(struct mutex *lock) { }
 void mutex_unlock(struct mutex *lock) { }
 void ieee80211_queue_work(struct ieee80211_hw *h, struct work_struct *w)
 {
-	UNREACHED("ieee80211_queue_work");
+	ht_core("ieee80211_queue_work");
 }
 
 /*
