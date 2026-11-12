@@ -13,33 +13,31 @@ make K=... KG=...        # the kernel headers, see ../integration/README.md
 ./ht-trace FLOW OPS FIRST LAST [-v | -o TRACE]
 ```
 
-## From the PHY init to the BSS up
+## From the PHY init through up
 
 `gates.sh` scores the cold 20 MHz captures as `../unit/gates.sh` does the
 AC-PHY's: the window runs from wl's first PHY operation after `up` to the
-end of `bss up`, b43 runs `b43_phy_init()` on the capture's channel (flow
-`full`) with the window as read oracle, and `../unit/cmp_skip.py --bus`
-scores the two; it needs `$TRACE_TOOLS` for `tracelib`. The line to quote
-is `grezzo`, with its two parameters.
+`ssid` mark, b43 runs its up on the capture's channel (flow `full`) with
+the window as read oracle, and `../unit/cmp_skip.py --bus` scores the two;
+it needs `$TRACE_TOOLS` for `tracelib`. The line to quote is `grezzo`,
+with its two parameters. What wl does when the BSS starts, at `ssid` and
+`bss up`, is not part of b43's up and is not in the window.
 
 On 2026-11-12, `--min-block 8 --gap-tol 2`:
 
 | capture | grezzo | PHY+radio |
 |---|---|---|
-| cold-2g1-20 | 5088/48630 = 10.46% | 5104/25861 = 19.74% |
-| cold-2g6-20 | 5088/39508 = 12.88% | 5104/25868 = 19.73% |
-| cold-2g11-20 | 5088/44504 = 11.43% | 5104/25853 = 19.74% |
+| cold-2g1-20 | 5334/8498 = 62.77% | 5350/5382 = 99.41% |
+| cold-2g6-20 | 5334/8619 = 61.89% | 5350/5382 = 99.41% |
+| cold-2g11-20 | 5334/8498 = 62.77% | 5350/5382 = 99.41% |
 
 The second row compares the PHY's and radio's operations only: the core's
 MMIO, shared memory and wrapper accesses are outside a harness that
-compiles no core. `full` makes the PHY calls of b43's core in its order:
-the analog switch of `b43_wireless_core_reset()` and of
-`b43_phy_bringup()`, then `b43_phy_init()`.
-
-b43 emits 5147 ops, wl 40 to 49 thousand: wl initialises the PHY again at
-`ssid`, with its calibrations, and b43 has neither. The calls b43's PHY makes
-into its core (MAC suspend, shared memory, PLL) are counted on stderr but
-emit no ops here. What is left is mapped in `../../docs/ht-retrace-todo.md`.
+compiles no core, and its calls into the core are counted on stderr. `full`
+makes the PHY calls of b43's core in its order: the analog switch of
+`b43_wireless_core_reset()` and of `b43_phy_bringup()`, `b43_phy_init()`,
+then the TX power check of mac80211's first config and the adjustment it
+queues. What is left is mapped in `../../docs/ht-retrace-todo.md`.
 
 `check.sh` takes `$TRACES/bcm4331-rev2/r6400v1`: the board values from its
 `nvram.txt`, the windows from its `traces/mmio-*`. A window runs from the
@@ -58,8 +56,9 @@ All 14 windows pass.
 Compared by class and address only (`value_free[]` in `trace.c`):
 
 - `TXPCTL_TARG_PWR` and `TXPCTL_TARG_PWR2`: b43 sets the target from
-  `maxp2ga*` (0x60); wl writes 0x20 in the first init and its own target
-  later (0x5a at 20 MHz, 0x56 at 40), from a computation not yet known.
+  `maxp2ga*` (0x60) capped by the regulatory and user limits; wl writes
+  0x20 in the first init and its own target later (0x5a at 20 MHz, 0x56
+  at 40), from a computation not yet known.
 
 ## Flows
 
