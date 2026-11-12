@@ -1697,6 +1697,345 @@ static void b43_phy_ht_cal_tx_iq_lo(struct b43_wldev *dev)
 	b43_phy_ht_txcal_restore(dev, &sv);
 }
 
+/**************************************************
+ * RX I/Q calibration
+ **************************************************/
+
+struct b43_phy_ht_iq_est {
+	u32 i_pwr, q_pwr;
+	s32 iq_prod;
+};
+
+/*
+ * The I/Q estimator, as wl drives it; its accumulators per core from 0x12c,
+ * 0x134 and 0x13a: the I/Q product, then the Q power, then the I power,
+ * high word first.
+ */
+static void b43_phy_ht_rx_iq_est(struct b43_wldev *dev,
+				 struct b43_phy_ht_iq_est *est, u16 samps)
+{
+	int c, i;
+
+	b43_phy_read(dev, 0x0b1);
+	b43_phy_write(dev, 0x12b, samps);
+	b43_phy_maskset(dev, 0x12a, ~0xff, 32);
+	b43_phy_mask(dev, 0x129, ~0x2);
+	b43_phy_set(dev, 0x129, 0x1);
+	for (i = 0; i < 1000; i++) {
+		if (!(b43_phy_read(dev, 0x129) & 0x1))
+			break;
+		udelay(10);
+	}
+	if (b43_phy_read(dev, 0x129) & 0x1)
+		b43err(dev->wl, "HT-PHY: RX I/Q estimate timeout\n");
+	for (c = 0; c < 3; c++) {
+		static const u16 base[3] = { 0x12c, 0x134, 0x13a };
+		u16 b = base[c];
+
+		est[c].q_pwr = b43_phy_read(dev, b + 3) << 16;
+		est[c].q_pwr |= b43_phy_read(dev, b + 2);
+		est[c].i_pwr = b43_phy_read(dev, b + 5) << 16;
+		est[c].i_pwr |= b43_phy_read(dev, b + 4);
+		est[c].iq_prod = b43_phy_read(dev, b + 1) << 16;
+		est[c].iq_prod |= b43_phy_read(dev, b);
+	}
+}
+
+/*
+ * brcmsmac's wlc_phy_calc_rx_iq_comp_nphy() for one core, with the root
+ * rounded as wl's results show
+ */
+static bool b43_phy_ht_rx_iq_comp(const struct b43_phy_ht_iq_est *est,
+				  u16 *a_out, u16 *b_out)
+{
+	s32 iq = est->iq_prod, a, b, tmp;
+	u32 ii = est->i_pwr, qq = est->q_pwr;
+	int iq_nbits = fls(abs(iq)), qq_nbits = fls(qq);
+	int arsh = 10 - (30 - iq_nbits), brsh = qq_nbits - 31 + 20;
+
+	if (ii + qq < 2)
+		return false;
+	if (arsh >= 0) {
+		a = -(iq << (30 - iq_nbits)) + (ii >> (1 + arsh));
+		tmp = ii >> arsh;
+	} else {
+		a = -(iq << (30 - iq_nbits)) + (ii << (-1 - arsh));
+		tmp = ii << -arsh;
+	}
+	if (!tmp)
+		return false;
+	a /= tmp;
+	b = qq << (31 - qq_nbits);
+	tmp = brsh >= 0 ? ii >> brsh : ii << -brsh;
+	if (!tmp)
+		return false;
+	b /= tmp;
+	b -= a * a;
+	/* wl rounds the root where brcmsmac truncates it */
+	b = (int_sqrt(4 * (unsigned long)b) + 1) / 2 - (1 << 10);
+	*a_out = a & 0x3ff;
+	*b_out = b & 0x3ff;
+	return true;
+}
+
+/* brcmsmac's nphy_ipa_rxcal_gaintbl_2GHz_rev7: lpf_biq0, lna2, txpwrindex */
+static const u8 b43_phy_ht_rxcal_gain[6][3] = {
+	{ 0, 0, 10 }, { 0, 1, 10 }, { 1, 2, 10 },
+	{ 1, 3, 10 }, { 4, 3, 10 }, { 6, 3, 10 },
+};
+
+/*
+ * The RX gain override of a core, as wl writes it: mix TIA gain 3, LNA2,
+ * LNA1 0 to 0x845, the LPF gains to 0x847, then the three enables. The
+ * captures show biq1 at 0 only; its place in 0x847 is brcmsmac's rev 7
+ * one relative to biq0.
+ */
+static void b43_phy_ht_rxcal_gain_set(struct b43_wldev *dev, int core,
+				      int idx, u16 biq1)
+{
+	u16 rf = B43_PHY_EXTG(0x040 + core * 0x20);
+
+	b43_phy_write(dev, rf + 0x5, 3 << 4 | b43_phy_ht_rxcal_gain[idx][1] << 2);
+	b43_phy_write(dev, rf + 0x7, biq1 << 4 | b43_phy_ht_rxcal_gain[idx][0]);
+	b43_phy_set(dev, rf, 0x0800);
+	b43_phy_set(dev, rf, 0x1000);
+	b43_phy_set(dev, rf, 0x2000);
+}
+
+/* The TX gain of every core from table 0x1a, as for the calibrations */
+static void b43_phy_ht_cal_tx_gain(struct b43_wldev *dev, u16 idx)
+{
+	int c;
+
+	for (c = 0; c < 3; c++) {
+		u32 gain = b43_httab_read(dev, B43_HTTAB32(26, 0xc0 + idx));
+
+		b43_phy_mask(dev, B43_PHY_EXTG(0x108), 0);
+		b43_httab_write(dev, B43_HTTAB16(7, 0x110 + c), gain >> 16);
+		b43_httab_write(dev, B43_HTTAB16(13, 0x63 + c * 4), gain & 0xff);
+		b43_httab_write(dev, B43_HTTAB16(13, 0x73 + c * 4), gain & 0xff);
+	}
+}
+
+struct b43_phy_ht_rxcal_save {
+	u16 bbcfg, bbmult[3], gain[3], afe, afe_over, r801, r297;
+	u16 rfctl[7];
+	u16 radio[9];
+};
+
+/* The 2059's registers of a core wl saves for the RX calibration */
+static const u16 b43_phy_ht_rxcal_radio[9] = {
+	0x15e, 0x15d, 0x160, 0x15f, 0x172, 0x173, 0x174, 0x09b, 0x0a6,
+};
+
+/* The RF controls of a core wl saves, offsets from 0x840 + 0x20 * core */
+static const u8 b43_phy_ht_rxcal_rfctl[7] = { 0xc, 0x4, 0x0, 0x9, 0x2, 0xa, 0x3 };
+
+/*
+ * As wl sets a core up for its RX calibration. Where it writes a register
+ * back unchanged from 0, the field it means is not known: those writes keep
+ * the register as it is.
+ */
+static void b43_phy_ht_rxcal_setup(struct b43_wldev *dev, int core,
+				   struct b43_phy_ht_rxcal_save *sv)
+{
+	static const u16 routing[3] = { R2059_C1, R2059_C2, R2059_C3 };
+	static const u8 lna2[3] = { 0x02, 0x03, 0x29 };
+	u16 afe = B43_PHY_HT_AFE_C1 + core * 4;
+	u16 over = B43_PHY_HT_AFE_C1_OVER + core * 4;
+	u16 rf = B43_PHY_EXTG(0x040 + core * 0x20);
+	u16 r = routing[core];
+	int c, i;
+
+	sv->bbcfg = b43_phy_read(dev, B43_PHY_HT_BBCFG);
+	b43_phy_mask(dev, B43_PHY_HT_BBCFG, 0xffff);
+	for (c = 0; c < 3; c++)
+		sv->bbmult[c] = b43_httab_read(dev, B43_HTTAB16(13, 0x63 + c * 4));
+	b43_httab_read_bulk(dev, B43_HTTAB16(7, 0x110), 3, sv->gain);
+
+	sv->afe = b43_phy_read(dev, afe);
+	sv->afe_over = b43_phy_read(dev, over);
+	b43_phy_mask(dev, afe, ~0x0004);
+	b43_phy_set(dev, over, 0x0004);
+	b43_phy_mask(dev, afe, 0xffff);
+	b43_phy_set(dev, over, 0x0040);
+
+	sv->r801 = b43_phy_read(dev, B43_PHY_EXTG(0x001));
+	b43_phy_mask(dev, B43_PHY_EXTG(0x001), ~0x7000);
+	b43_phy_maskset(dev, B43_PHY_EXTG(0x001), ~0x0007, 1 << core);
+
+	sv->rfctl[0] = b43_phy_read(dev, rf + 0xc);
+	b43_phy_mask(dev, rf + 0xc, 0xffff);
+	b43_phy_mask(dev, rf + 0xc, 0xffff);
+	b43_phy_set(dev, rf + 0xc, 0x1000);
+	b43_phy_set(dev, rf + 0xc, 0x0040);
+	b43_phy_mask(dev, rf + 0xc, 0xffff);
+	b43_phy_set(dev, rf + 0xc, 0x0400);
+	for (i = 1; i < 7; i++)
+		sv->rfctl[i] = b43_phy_read(dev, rf + b43_phy_ht_rxcal_rfctl[i]);
+	b43_phy_mask(dev, rf + 0x4, 0xffff);
+	b43_phy_mask(dev, rf + 0x4, 0xffff);
+	b43_phy_set(dev, rf, 0x0002);
+	b43_phy_set(dev, rf, 0x0100);
+	b43_phy_mask(dev, rf + 0x9, 0xffff);
+	b43_phy_set(dev, rf + 0x9, 0x0400);
+	b43_phy_mask(dev, rf + 0x9, 0xffff);
+	b43_phy_mask(dev, rf + 0x9, 0xffff);
+	b43_phy_set(dev, rf + 0x2, 0x0020);
+	b43_phy_set(dev, rf + 0x2, 0x0040);
+	b43_phy_set(dev, rf + 0x2, 0x0080);
+	b43_phy_set(dev, rf + 0x2, 0x0004);
+	b43_phy_set(dev, rf + 0xa, 0x0001);
+	b43_phy_set(dev, rf + 0xa, 0x0008);
+	b43_phy_set(dev, rf + 0x3, 0x0001);
+	b43_phy_set(dev, rf + 0x3, 0x0008);
+
+	sv->r297 = b43_phy_read(dev, 0x297 + core * 4);
+	b43_phy_mask(dev, 0x297 + core * 4, 0xffff);
+
+	for (i = 0; i < 9; i++)
+		sv->radio[i] = b43_radio_read(dev, r | b43_phy_ht_rxcal_radio[i]);
+	b43_radio_write(dev, r | 0x15e, 3);
+	b43_radio_write(dev, r | 0x15d, 0x7f);
+	b43_radio_read(dev, r | 0x172);
+	b43_radio_write(dev, r | 0x172, 0);
+	b43_radio_write(dev, r | 0x173, 0x27);
+	b43_radio_write(dev, r | 0x174, 0x27);
+	b43_radio_write(dev, r | 0x09b, 0x24);
+	b43_radio_write(dev, r | 0x0a6, 2);
+
+	b43_phy_read(dev, 0x410);
+	b43_httab_read(dev, B43_HTTAB16(lna2[core], 0x23));
+	b43_httab_read(dev, B43_HTTAB32(26, 0xf2));
+}
+
+static void b43_phy_ht_rxcal_restore(struct b43_wldev *dev, int core,
+				     const struct b43_phy_ht_rxcal_save *sv)
+{
+	static const u16 routing[3] = { R2059_C1, R2059_C2, R2059_C3 };
+	u16 rf = B43_PHY_EXTG(0x040 + core * 0x20);
+	int c, i;
+
+	b43_phy_ht_reset_cca(dev);
+	for (i = 0; i < 9; i++)
+		b43_radio_write(dev, routing[core] | b43_phy_ht_rxcal_radio[i],
+				sv->radio[i]);
+	b43_phy_write(dev, B43_PHY_HT_BBCFG, sv->bbcfg);
+	b43_phy_ht_reset_cca(dev);
+	for (c = 0; c < 3; c++) {
+		b43_httab_write(dev, B43_HTTAB16(13, 0x63 + c * 4), sv->bbmult[c]);
+		b43_httab_write(dev, B43_HTTAB16(13, 0x73 + c * 4), sv->bbmult[c]);
+	}
+	b43_httab_write_bulk(dev, B43_HTTAB16(7, 0x110), 3, sv->gain);
+	b43_phy_write(dev, B43_PHY_HT_AFE_C1 + core * 4, sv->afe);
+	b43_phy_write(dev, B43_PHY_HT_AFE_C1_OVER + core * 4, sv->afe_over);
+	b43_phy_write(dev, B43_PHY_EXTG(0x001), sv->r801);
+	for (i = 0; i < 7; i++)
+		b43_phy_write(dev, rf + b43_phy_ht_rxcal_rfctl[i], sv->rfctl[i]);
+	b43_phy_write(dev, 0x297 + core * 4, sv->r297);
+	b43_phy_ht_force_rf_sequence(dev, B43_PHY_HT_RF_SEQ_TRIG_RST2RX);
+}
+
+/*
+ * The RX I/Q calibration as wl runs it after the TX one: brcmsmac's rev 7
+ * one on three cores. For each core the TX gain of index 10 loops a tone of
+ * 2000 kHz at 181 back, the RX gain is searched over the rev 7 table as
+ * brcmsmac does, and the compensation is computed from a 0x4000 sample
+ * estimate and written to 0x9a-0x9f.
+ */
+static void b43_phy_ht_cal_rx_iq(struct b43_wldev *dev)
+{
+	struct b43_phy_ht_rxcal_save sv;
+	struct b43_phy_ht_iq_est est[3];
+	u16 cls, clip[3], comp[6];
+	int core, c, n;
+
+	cls = b43_phy_ht_classifier(dev, 0, 0);
+	b43_phy_ht_classifier(dev, B43_PHY_HT_CLASS_CTL_CCK_EN |
+				   B43_PHY_HT_CLASS_CTL_OFDM_EN, 0);
+	b43_phy_ht_read_clip_detection(dev, clip);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, B43_PHY_HT_C1_CLIP1THRES + c * 0x40, 0xffff);
+	b43_phy_ht_reset_cca(dev);
+	b43_phy_ht_force_rf_sequence(dev, B43_PHY_HT_RF_SEQ_TRIG_RST2RX);
+	for (c = 0; c < 6; c++)
+		b43_phy_write(dev, 0x9a + c, 0);
+
+	for (core = 0; core < 3; core++) {
+		int idx = 3, prev = 3, optim = 3, dirn = 0;
+		u32 pwr, prev_pwr = 0, optim_pwr = 0;
+		bool done = false;
+		int fine;
+		u16 a, b;
+
+		b43_phy_ht_rxcal_setup(dev, core, &sv);
+		b43_phy_ht_rxcal_gain_set(dev, core, idx, 0);
+		b43_phy_ht_cal_tx_gain(dev, b43_phy_ht_rxcal_gain[idx][2]);
+
+		while (!done) {
+			n = b43_phy_ht_load_tone(dev, 2000, 181);
+			b43_phy_ht_run_samples(dev, n, 0xffff, 0, false);
+			b43_phy_ht_rx_iq_est(dev, est, 0x400);
+			pwr = DIV_ROUND_CLOSEST(est[core].i_pwr, 0x400) +
+			      DIV_ROUND_CLOSEST(est[core].q_pwr, 0x400);
+			if (dirn == 0)
+				dirn = pwr > 10000 ? -1 : 1;
+			if (dirn > 0 && pwr > 10000 && idx != prev) {
+				done = true;
+				optim_pwr = prev_pwr;
+				optim = prev;
+			} else if (dirn < 0 && pwr <= 10000) {
+				done = true;
+				optim_pwr = pwr;
+				optim = idx;
+			} else {
+				prev = idx;
+				idx += dirn;
+			}
+			if (!done && (idx < 0 || idx > 5)) {
+				done = true;
+				optim_pwr = pwr;
+				optim = prev;
+			} else {
+				prev_pwr = pwr;
+			}
+			b43_phy_ht_stop_playback(dev);
+			b43_phy_ht_reset_cca(dev);
+			if (!done) {
+				b43_phy_ht_rxcal_gain_set(dev, core, idx, 0);
+				b43_phy_ht_cal_tx_gain(dev,
+					b43_phy_ht_rxcal_gain[idx][2]);
+			}
+		}
+		fine = 13 - fls(optim_pwr);
+		if (fine + b43_phy_ht_rxcal_gain[optim][0] > 10)
+			fine = 10 - b43_phy_ht_rxcal_gain[optim][0];
+		b43_phy_ht_rxcal_gain_set(dev, core, optim, max(fine, 0));
+		b43_phy_ht_cal_tx_gain(dev, b43_phy_ht_rxcal_gain[optim][2]);
+
+		n = b43_phy_ht_load_tone(dev, 2000, 181);
+		b43_phy_ht_run_samples(dev, n, 0xffff, 0, false);
+		for (c = 0; c < 6; c++)
+			comp[c] = b43_phy_read(dev, 0x9a + c);
+		b43_phy_ht_rx_iq_est(dev, est, 0x4000);
+		b43_phy_write(dev, 0x9a + core * 2, 0);
+		b43_phy_write(dev, 0x9b + core * 2, 0);
+		if (b43_phy_ht_rx_iq_comp(&est[core], &a, &b)) {
+			comp[core * 2] = a;
+			comp[core * 2 + 1] = b;
+		}
+		for (c = 0; c < 6; c++)
+			b43_phy_write(dev, 0x9a + c, comp[c]);
+		b43_phy_ht_stop_playback(dev);
+		b43_phy_ht_rxcal_restore(dev, core, &sv);
+	}
+
+	b43_phy_ht_classifier(dev, B43_PHY_HT_CLASS_CTL_CCK_EN |
+				   B43_PHY_HT_CLASS_CTL_OFDM_EN, cls);
+	b43_phy_ht_write_clip_detection(dev, clip);
+	b43_httab_write(dev, B43_HTTAB16(13, 0x5f), 0xacdc);
+}
+
 /*
  * One calibration pass of wl's at the start of the BSS: the TX power
  * control off with its indices kept, the idle TSSI measured and the
@@ -1709,6 +2048,7 @@ static void b43_phy_ht_cal_pass(struct b43_wldev *dev)
 	b43_phy_ht_tx_power_ctl_idle_tssi(dev);
 	b43_phy_ht_tx_power_ctl_setup(dev);
 	b43_phy_ht_cal_tx_iq_lo(dev);
+	b43_phy_ht_cal_rx_iq(dev);
 	b43_phy_ht_tx_power_ctl(dev, true);
 }
 
