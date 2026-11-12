@@ -6,8 +6,11 @@
  * ops with the capture's, op by op.
  *
  *   ht-trace FLOW OPS FIRST LAST [-v]
+ *   ht-trace FLOW OPS FIRST LAST -o TRACE
  *
  * OPS is mmio2ops.py output, FIRST and LAST the #numbers of the window.
+ * With -o the flow's ops go to TRACE, for ../unit/cmp_skip.py --bus, and
+ * the reads it took from the window are summed up on stderr.
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -171,6 +174,29 @@ void ht_mmio_write16(unsigned short offset, unsigned short value)
 	}
 }
 
+unsigned int ht_mmio_read32(unsigned short offset)
+{
+	char key[24];
+	unsigned int v;
+
+	snprintf(key, sizeof(key), "REG %04x", offset);
+	v = serve(key);
+	emit("%s off=0x%04x val=0x%08x", "REG.RD", offset, v);
+	return v;
+}
+
+void ht_mmio_write32(unsigned short offset, unsigned int value)
+{
+	char key[24];
+
+	if (offset == 0x120 && nout < MAX_OPS)
+		snprintf(out[nout++].text, LINE, "MAC.MCTRL val=0x%08x", value);
+	else if (offset != 0x120)
+		emit("%s off=0x%04x val=0x%08x", "REG.WR", offset, value);
+	snprintf(key, sizeof(key), "REG %04x", offset);
+	store(key, value);
+}
+
 unsigned int ht_wrap_read32(unsigned short offset)
 {
 	char key[24];
@@ -199,6 +225,33 @@ void ht_log(const char *what)
 }
 
 static const char *nvram_path;
+
+long ht_env(const char *name, long dflt)
+{
+	const char *v = getenv(name);
+
+	return v ? strtol(v, NULL, 0) : dflt;
+}
+
+/* Calls into b43's core, by name, for the summary of a trace run. */
+static struct {
+	const char *fn;
+	int n;
+} core_calls[32];
+static int ncore;
+
+void ht_core(const char *fn)
+{
+	int i;
+
+	for (i = 0; i < ncore; i++)
+		if (core_calls[i].fn == fn)
+			break;
+	if (i == ncore && ncore < 32)
+		core_calls[ncore++].fn = fn;
+	if (i < 32)
+		core_calls[i].n++;
+}
 
 long ht_nvram(const char *name, long dflt)
 {
@@ -304,6 +357,7 @@ static int load(const char *path, long first, long last)
 int main(int argc, char **argv)
 {
 	int i, verbose = argc > 5 && !strcmp(argv[5], "-v");
+	const char *trace = argc > 6 && !strcmp(argv[5], "-o") ? argv[6] : NULL;
 	int unread = 0, excepted = 0, r = 1;
 
 	if (argc < 5) {
@@ -323,6 +377,24 @@ int main(int argc, char **argv)
 	if (verbose)
 		for (i = 0; i < nout; i++)
 			printf("%s\n", out[i].text);
+	if (trace) {
+		FILE *f = fopen(trace, "w");
+
+		if (!f) {
+			perror(trace);
+			return 2;
+		}
+		for (i = 0; i < nout; i++)
+			fprintf(f, "cpu0 %s\n", out[i].text);
+		fclose(f);
+		fprintf(stderr, "%d ops; reads past the window %d, window reads "
+			"not taken %d, b43 messages %d\n", nout, exhausted,
+			unread, nlog);
+		for (i = 0; i < ncore; i++)
+			fprintf(stderr, "core, no ops: %s x%d\n",
+				core_calls[i].fn, core_calls[i].n);
+		return 0;
+	}
 
 	for (i = 0; i < nout && i < nref; i++) {
 		r = same(out[i].text, ref[i].text);

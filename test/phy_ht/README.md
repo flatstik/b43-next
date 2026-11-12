@@ -8,9 +8,32 @@ two streams op by op.
 
 ```sh
 make K=... KG=...        # the kernel headers, see ../integration/README.md
-./check.sh               # every init of the R6400 v1 captures
-./ht-trace FLOW OPS FIRST LAST [-v]
+./gates.sh --min-block 8 --gap-tol 2   # PHY init to BSS up, scored
+./check.sh               # the TX power control init, op for op
+./ht-trace FLOW OPS FIRST LAST [-v | -o TRACE]
 ```
+
+## From the PHY init to the BSS up
+
+`gates.sh` scores the cold 20 MHz captures as `../unit/gates.sh` does the
+AC-PHY's: the window runs from wl's first PHY operation after `up` to the
+end of `bss up`, b43 runs `b43_phy_init()` on the capture's channel (flow
+`full`) with the window as read oracle, and `../unit/cmp_skip.py --bus`
+scores the two; it needs `$TRACE_TOOLS` for `tracelib`. The line to quote
+is `grezzo`, with its two parameters.
+
+On 2026-11-12, `--min-block 8 --gap-tol 2`:
+
+| capture | grezzo |
+|---|---|
+| cold-2g1-20 | 4361/49011 = 8.90% |
+| cold-2g6-20 | 4361/39889 = 10.93% |
+| cold-2g11-20 | 4361/44885 = 9.72% |
+
+b43 emits 4801 ops, wl 40 to 49 thousand: wl initialises the PHY again at
+`ssid`, with its calibrations, and b43 has neither. The calls b43's PHY makes
+into its core (MAC suspend, shared memory, PLL) are counted on stderr but
+emit no ops here.
 
 `check.sh` takes `$TRACES/bcm4331-rev2/r6400v1`: the board values from its
 `nvram.txt`, the windows from its `traces/mmio-*`. A window runs from the
