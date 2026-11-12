@@ -27,17 +27,18 @@ On 2026-11-12, `--min-block 8 --gap-tol 2`:
 
 | capture | grezzo | PHY+radio |
 |---|---|---|
-| cold-2g1-20 | 5334/8498 = 62.77% | 5350/5382 = 99.41% |
-| cold-2g6-20 | 5334/8619 = 61.89% | 5350/5382 = 99.41% |
-| cold-2g11-20 | 5334/8498 = 62.77% | 5350/5382 = 99.41% |
+| cold-2g1-20 | 5334/8502 = 62.74% | 5354/5382 = 99.48% |
+| cold-2g6-20 | 5334/8623 = 61.86% | 5354/5382 = 99.48% |
+| cold-2g11-20 | 5334/8502 = 62.74% | 5354/5382 = 99.48% |
 
 The second row compares the PHY's and radio's operations only: the core's
 MMIO, shared memory and wrapper accesses are outside a harness that
 compiles no core, and its calls into the core are counted on stderr. `full`
 makes the PHY calls of b43's core in its order: the analog switch of
 `b43_wireless_core_reset()` and of `b43_phy_bringup()`, `b43_phy_init()`,
-then the TX power check of mac80211's first config and the adjustment it
-queues. What is left is mapped in `../../docs/ht-retrace-todo.md`.
+the TX power check of mac80211's first config and the adjustment it
+queues, then the HT-PHY's 1 s work once per turn of wl's 1 s watchdog in
+the window (each turn reads MMIO 0x4d0 once; `ap_start` too). What is left is mapped in `../../docs/ht-retrace-todo.md`.
 
 `check.sh` takes `$TRACES/bcm4331-rev2/r6400v1`: the board values from its
 `nvram.txt`, the windows from its `traces/mmio-*`. A window runs from the
@@ -64,9 +65,9 @@ init are not in b43 yet.
 
 | capture | PHY+radio |
 |---|---|
-| cold-2g1-20 | 1540/20485 = 7.52% |
-| cold-2g6-20 | 1540/20492 = 7.52% |
-| cold-2g11-20 | 1540/20477 = 7.52% |
+| cold-2g1-20 | 1552/20489 = 7.57% |
+| cold-2g6-20 | 1552/20500 = 7.57% |
+| cold-2g11-20 | 1552/20481 = 7.58% |
 
 ## Exceptions
 

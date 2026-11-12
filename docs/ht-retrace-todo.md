@@ -25,13 +25,12 @@ runs are the core's, which this harness does not compile:
 
 In order, PHY and radio only, b43's operations of the cold ch 6 `up`
 are one block, 5350 of wl's 5382 (99.41%), six values apart: the target
-power, by design (`test/phy_ht/README.md`, "Exceptions"). The 20 left are
-wl's during the ten idle seconds after `wl up`, between MAC suspends:
-a read-modify-write of 0x280/0x283 (#8131), a read of table 13 entry 0x5f
-(#8520), and, after a core reset, the analog switch and the radio off
-(#8590-#8613), wl's power saving while no BSS is up. b43 runs nothing
-there; on the AC the harness plays such periods from the capture's
-timeline.
+power, by design (`test/phy_ht/README.md`, "Exceptions"). wl's 1 s
+watchdog rewrites 0x280/0x283 on every second turn, as b43's 1 s work now
+does. What is left is the watchdog's third turn after `wl up`: a read of
+table 13 entry 0x5f (#8520) and, after a core reset, the analog switch and
+the radio off (#8590-#8613), wl's power saving while no BSS is up, which
+b43 does not have.
 
 The PHY's calls into the core (`b43_mac_suspend()`, the shared memory,
 `b43_mac_switch_freq()`, the PLL) emit nothing in the harness: on the AC
@@ -44,8 +43,8 @@ flow `ap_start` in `test/phy_ht`), in wl's order up to the TX power control.
 What follows in wl is missing:
 
 - the TX power recalculation of `b43_phy_ht_op_adjust_txpower()`, two or
-  three times per start of the BSS, at times set by wl's events, not by
-  the init: a timeline is needed to place them, as on the AC;
+  three times inside the start of the BSS (#12660, #13536, #25010 on ch 6),
+  not on watchdog turns;
 - two passes of calibration (#15069-#24098 and #26530-#35530 on ch 6).
   Each: the TX power control off with its indices saved, an idle TSSI
   measurement as `b43_phy_ht_tx_power_ctl_idle_tssi()`, table 0x1a's late
