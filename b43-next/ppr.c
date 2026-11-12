@@ -310,7 +310,7 @@ static void b43_ppr_load_r8_mcs(struct b43_ppr *ppr, enum b43_ppr_mode mode,
 	for (i = 0; i < 8; i++)
 		mcs[i] = b43_ppr_sub(b43_ppr_sub(maxp,
 						 b43_ppr_off(po[i / 4], i % 4)),
-				     extra);
+				     extra * 2);
 }
 
 u8 b43_ppr_load_sprom_r8(struct b43_ppr *ppr, const struct ssbn_sprom *sprom,

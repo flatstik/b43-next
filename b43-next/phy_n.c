@@ -4055,6 +4055,38 @@ static void b43_nphy_tx_power_ctl_idle_tssi(struct b43_wldev *dev)
 	nphy->pwr_ctl_info[1].idle_tssi_2g = (tmp >> 8) & 0xFF;
 }
 
+/*
+ * The back-off of each rate from the highest per-rate target, in the
+ * layout of brcmsmac's tx_power_offset[] that
+ * b43_nphy_tx_prepare_adjusted_power_table() reads: CCK, then at 20 and at
+ * 40 MHz the OFDM rates (SISO, CDD) and the MCS (SISO, CDD, STBC, SDM),
+ * then MCS 32.
+ */
+static void b43_nphy_tx_power_offsets(struct b43_wldev *dev,
+				      const struct b43_ppr *ppr)
+{
+	struct b43_phy_n *nphy = dev->phy.n;
+	static const enum b43_ppr_bw bws[] = { B43_PPR_BW_20, B43_PPR_BW_40 };
+	u8 max = b43_ppr_get_max(ppr);
+	unsigned int i, b, m, o = 0;
+
+	memset(nphy->tx_power_offset, 0, sizeof(nphy->tx_power_offset));
+	for (i = 0; i < B43_PPR_CCK_RATES; i++)
+		nphy->tx_power_offset[o++] = max - b43_ppr_get_cck(ppr, i);
+	for (b = 0; b < ARRAY_SIZE(bws); b++) {
+		for (m = B43_PPR_SISO; m <= B43_PPR_CDD; m++)
+			for (i = 0; i < B43_PPR_OFDM_RATES; i++)
+				nphy->tx_power_offset[o++] = max -
+					b43_ppr_get_ofdm(ppr, bws[b], m, i);
+		for (m = B43_PPR_SISO; m < B43_PPR_MODE_NUM; m++)
+			for (i = 0; i < 8; i++)
+				nphy->tx_power_offset[o++] = max -
+					b43_ppr_get_mcs(ppr, bws[b], m,
+							m == B43_PPR_CDD && i ?
+							i - 1 : i);
+	}
+}
+
 /* https://bcm-v4.sipsolutions.net/PHY/N/TxPwrLimitToTbl */
 static void b43_nphy_tx_prepare_adjusted_power_table(struct b43_wldev *dev)
 {
@@ -7197,6 +7229,13 @@ static enum b43_txpwr_result b43_nphy_op_recalc_txpower(struct b43_wldev *dev,
 
 	/* Make sure we didn't go too low */
 	b43_ppr_apply_min(ppr, INT_TO_Q52(8));
+
+	/*
+	 * The hardware power control aims at the highest per-rate target. The
+	 * adjusted power table backs the other rates off from it, so that e.g.
+	 * 64-QAM isn't sent at the power allowed for CCK.
+	 */
+	b43_nphy_tx_power_offsets(dev, ppr);
 
 	/* Apply */
 	b43_mac_suspend(dev);
