@@ -109,6 +109,15 @@ static struct b43_wldev *setup(void)
 	return &wldev;
 }
 
+/* The 1 s periodic work, once per watchdog turn of the window */
+static void run_turns(struct b43_wldev *dev)
+{
+	long n = ht_env("HT_WD_TURNS", 0);
+
+	while (n-- > 0)
+		b43_phy_ht_op_pwork_1sec(dev);
+}
+
 int ht_run_flow(const char *name)
 {
 	struct b43_wldev *dev = setup();
@@ -138,6 +147,7 @@ int ht_run_flow(const char *name)
 		b43_phy_txpower_check(dev, B43_TXPWR_IGNORE_TIME |
 				      B43_TXPWR_IGNORE_TSSI);
 		dev->phy.ops->adjust_txpower(dev);
+		run_turns(dev);
 	} else if (!strcmp(name, "ap_start")) {
 		/*
 		 * b43_ht_phy_recycle() when beaconing starts: the PHY init on
@@ -152,6 +162,7 @@ int ht_run_flow(const char *name)
 		phy_ht.t25_off = ht_env("HT_T25", 0);
 		phy_ht.t25_set = true;
 		b43_phy_init(dev);
+		run_turns(dev);
 	} else if (!strcmp(name, "pctl_init")) {
 		/* The TX power control at the end of b43_phy_ht_op_init() */
 		bool saved = phy_ht.tx_pwr_ctl;

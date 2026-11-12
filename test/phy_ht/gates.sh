@@ -40,8 +40,16 @@ for c in "$@"; do
 	first=$(awk "/MARK 'up'/ { u = 1; next } u && / PHY\./ { print substr(\$2, 2); exit }" "$ops")
 	last=$(awk "/MARK 'ssid'/ { print substr(\$2, 2) - 1; exit }" "$ops")
 	ch=$(echo "$c" | sed 's/cold-2g\([0-9]*\).*/\1/')
+	# wl's 1 s watchdog turns in a window: each reads MMIO 0x4d0 once,
+	# which nothing else in the captures reads.
+	turns() {
+		awk -v a="$1" -v z="$2" '{ n = substr($2, 2) + 0 }
+			n >= a && n <= z && /REG\.RD off=0x04d0/ { k++ }
+			END { print k + 0 }' "$ops"
+	}
 	echo "== $c, ops $first:$last, channel $ch"
-	HT_CHANNEL=$ch ./ht-trace full "$ops" "$first" "$last" -o "$T/$c.trace"
+	HT_CHANNEL=$ch HT_WD_TURNS=$(turns "$first" "$last") \
+		./ht-trace full "$ops" "$first" "$last" -o "$T/$c.trace"
 	python3 ../unit/cmp_skip.py "$ops" "$T/$c.trace" "$first:$last" \
 		--board r6400v1 --bus $B | grep -A2 '^grezzo'
 	grep -E ' (PHY|RAD)\.' "$ops" > "$T/$c.phy.ops"
@@ -57,7 +65,8 @@ for c in "$@"; do
 	rc() { awk -v r="RAD.RD addr=$1 " 'index($0, r) { print $NF; exit }' "$ops" | sed 's/val=//'; }
 	t25=$(awk '/PHY\.WR addr=0x0072 val=0x94/ { print "0x" substr($NF, 9); exit }' "$ops")
 	echo "== $c, ap start, ops $a:$z"
-	HT_CHANNEL=$ch HT_RCCAL0=$(rc 0x034c) HT_RCCAL1=$(rc 0x034d) \
+	HT_CHANNEL=$ch HT_WD_TURNS=$(turns "$a" "$z") \
+		HT_RCCAL0=$(rc 0x034c) HT_RCCAL1=$(rc 0x034d) \
 		HT_RCCAL2=$(rc 0x034e) HT_T25=$t25 \
 		./ht-trace ap_start "$ops" "$a" "$z" -o "$T/$c.ap.trace" 2>/dev/null
 	grep -E ' (PHY|RAD)\.' "$T/$c.ap.trace" > "$T/$c.ap.phy.trace"
