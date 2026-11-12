@@ -41,8 +41,24 @@ The PHY's calls into the core (`b43_mac_suspend()`, the shared memory,
 
 b43 runs the later init when beaconing starts (`b43_ht_phy_recycle()`;
 flow `ap_start` in `test/phy_ht`), in wl's order up to the TX power control.
-What follows in wl is missing: the TX power recalculation, twice, and two
-passes of calibrations.
+What follows in wl is missing:
+
+- the TX power recalculation of `b43_phy_ht_op_adjust_txpower()`, two or
+  three times per start of the BSS, at times set by wl's events, not by
+  the init: a timeline is needed to place them, as on the AC;
+- two passes of calibration (#15069-#24098 and #26530-#35530 on ch 6).
+  Each: the TX power control off with its indices saved, an idle TSSI
+  measurement as `b43_phy_ht_tx_power_ctl_idle_tssi()`, table 0x1a's late
+  part again, then
+  - a TX I/Q and LO calibration (#15765-#17663): tone 2500 kHz at 250,
+    the I/Q LO commands at 0x0c2 and the coefficients in table 13;
+  - an RX I/Q calibration, twelve steps (#17939-#23999): tone 2000 kHz at
+    181, playback, the estimator at 0x129, table 13;
+  - the control on again.
+
+  The steps are those of the N-PHY's rev 3+ calibrations in b43
+  (`b43_nphy_cal_tx_iq_lo()`, `b43_nphy_rev3_cal_rx_iq()`) and in brcmsmac,
+  which are where the port starts from.
 
 wl initialises the PHY for the channel again, without the radio init of
 `up`, then calibrates:
