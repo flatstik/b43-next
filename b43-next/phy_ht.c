@@ -829,6 +829,148 @@ static void b43_phy_ht_spur_avoid(struct b43_wldev *dev,
 	b43_phy_ht_reset_cca(dev);
 }
 
+/*
+ * The gain control setup wl runs at the end of the channel setup, as its
+ * captures show it on every 2.4 GHz channel at 20 and 40 MHz. The reads
+ * are wl's; b43 has no use for their values yet.
+ */
+static void b43_phy_ht_gain_ctl_setup(struct b43_wldev *dev,
+				      struct ieee80211_channel *channel)
+{
+	static const u16 base[3] = { 0x400, 0x440, 0x480 };
+	static const u8 lna[3] = { 0x00, 0x01, 0x28 };
+	static const u8 lna2[3] = { 0x02, 0x03, 0x29 };
+	static const u16 lna_20[10] = {
+		0xff, 0xff, 0x2, 0x5, 0x5, 0x5, 0x5, 0x5, 0x5, 0x5,
+	};
+	static const u16 lna2_20[10] = {
+		0x1, 0x1, 0x2, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3,
+	};
+	static const u16 reg16[3] = { 0x4c, 0x4c, 0x6c };
+	/* One per channel modulo 4, the same on every capture */
+	static const u16 t25_off[4] = { 0x2a, 0x19, 0x09, 0x3a };
+	u16 buf[4];
+	int c, i;
+
+	b43_phy_maskset(dev, B43_PHY_OFDM(0x141), 0xff00, 0x46);
+	b43_phy_maskset(dev, 0x283, 0xff00, 0x3a);
+	b43_phy_maskset(dev, 0x280, 0xff00, 0x3a);
+	for (c = 0; c < 3; c++)
+		b43_phy_maskset(dev, base[c] + 0x24, ~0x3f, 0x12);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x0d, 0xbd);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x12, 0x4c);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x13, 0x14);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x14, 0x22);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x15, 0x04);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x16, reg16[c]);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x17, 0x18);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x10, 0x6c);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x11, 0x614);
+
+	b43_httab_write_few(dev, B43_HTTAB16(7, 0x106), 3,
+			    0x6136, 0x6136, 0x6136);
+	for (c = 0; c < 3; c++)
+		b43_httab_write_few(dev, B43_HTTAB16(lna[c], 0x00), 2, 0xd, 0xd);
+	for (c = 0; c < 3; c++)
+		b43_httab_write_few(dev, B43_HTTAB16(lna[c], 0x08), 4,
+				    0x9, 0xf, 0x13, 0x13);
+	for (c = 0; c < 3; c++)
+		b43_httab_write_few(dev, B43_HTTAB16(lna2[c], 0x08), 4,
+				    0x0, 0x1, 0x2, 0x2);
+	for (c = 0; c < 3; c++)
+		b43_httab_write_few(dev, B43_HTTAB16(lna[c], 0x10), 4,
+				    0xfd, 0x7, 0x7, 0x7);
+	for (c = 0; c < 3; c++)
+		b43_httab_write_few(dev, B43_HTTAB16(lna2[c], 0x10), 4,
+				    0x0, 0x1, 0x1, 0x1);
+	for (c = 0; c < 3; c++)
+		b43_httab_write_bulk(dev, B43_HTTAB16(lna[c], 0x20),
+				     ARRAY_SIZE(lna_20), lna_20);
+	for (c = 0; c < 3; c++)
+		b43_httab_write_bulk(dev, B43_HTTAB16(lna2[c], 0x20),
+				     ARRAY_SIZE(lna2_20), lna2_20);
+
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x08), 3, 0x8e, 0x96, 0x96);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x18), 3, 0x8f, 0x9f, 0x9f);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x28), 3, 0x8f, 0x9f, 0x9f);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x0c), 3, 0x2, 0x2, 0x2);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x1c), 3, 0x2, 0x2, 0x2);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x2c), 3, 0x2, 0x2, 0x2);
+
+	b43_httab_read_bulk(dev, B43_HTTAB16(7, 0x106), 3, buf);
+	for (i = 0; i < 3; i++) {
+		b43_httab_read(dev, B43_HTTAB16(0, 0x0a));
+		b43_httab_read(dev, B43_HTTAB16(0, 0x11));
+		b43_httab_read(dev, B43_HTTAB16(0, 0x23));
+		b43_phy_read(dev, 0x520);
+	}
+	for (c = 0; c < 3; c++) {
+		b43_phy_read(dev, base[c] + 0x10);
+		b43_httab_read(dev, B43_HTTAB16(lna[c], 0x00));
+	}
+
+	b43_httab_write_few(dev, B43_HTTAB32(0x25, t25_off[channel->hw_value % 4]),
+			    2, 0xa, 0xa);
+	for (c = 0; c < 3; c++) {
+		b43_httab_write(dev, B43_HTTAB16(8, 0x0b + c * 0x10), 0x96);
+		b43_httab_write(dev, B43_HTTAB16(8, 0x0f + c * 0x10), 0);
+	}
+
+	for (c = 0; c < 3; c++)
+		b43_phy_read(dev, base[c] + 0x10);
+	for (c = 0; c < 3; c++)
+		b43_phy_read(dev, base[c] + 0x11);
+	b43_phy_read(dev, 0x280);
+	b43_phy_read(dev, 0x283);
+	b43_phy_read(dev, 0x547);
+	b43_phy_read(dev, 0xc33);
+	b43_httab_read_bulk(dev, B43_HTTAB16(7, 0x106), 3, buf);
+	for (i = 0; i < 3; i++) {
+		static const u8 regs[3] = { 0x12, 0x13, 0x0d };
+
+		for (c = 0; c < 3; c++)
+			b43_phy_read(dev, base[c] + regs[i]);
+	}
+	b43_httab_read_bulk(dev, B43_HTTAB16(4, 0x10), 4, buf);
+	b43_httab_read_bulk(dev, B43_HTTAB16(4, 0x50), 4, buf);
+	for (i = 0; i < 3; i++) {
+		static const u8 regs[3] = { 0x16, 0x17, 0x24 };
+
+		for (c = 0; c < 3; c++)
+			b43_phy_read(dev, base[c] + regs[i]);
+	}
+	for (i = 0; i < 4; i++) {
+		static const u16 regs[4] = { 0x0ab, 0x0b0, 0x0b0, 0x0aa };
+		static const u16 routing[3] = { R2059_C1, R2059_C2, R2059_C3 };
+
+		for (c = 0; c < 3; c++)
+			b43_radio_read(dev, routing[c] | regs[i]);
+	}
+	for (i = 0; i < 8; i++)
+		b43_phy_read(dev, 0x228 + i);
+
+	/* The clip thresholds, as wl writes them twice; not derived yet */
+	for (i = 0; i < 2; i++) {
+		for (c = 0; c < 3; c++) {
+			b43_phy_maskset(dev, 0x273 + c * 3, 0xff00, 0x62);
+			b43_phy_maskset(dev, 0x273 + c * 3, 0x00ff, 0x5f00);
+		}
+		if (!i) {
+			b43_phy_write(dev, 0x1df, 0x1591);
+			b43_phy_write(dev, 0x1e1, 0x1591);
+		}
+	}
+}
+
 static void b43_phy_ht_channel_setup(struct b43_wldev *dev,
 				const struct b43_phy_ht_channeltab_e_phy *e,
 				struct ieee80211_channel *new_channel)
@@ -869,6 +1011,7 @@ static void b43_phy_ht_channel_setup(struct b43_wldev *dev,
 		b43_phy_ht_tx_power_fix(dev);
 
 	b43_phy_ht_spur_avoid(dev, new_channel);
+	b43_phy_ht_gain_ctl_setup(dev, new_channel);
 }
 
 static int b43_phy_ht_set_channel(struct b43_wldev *dev,
@@ -999,35 +1142,10 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	b43_httab_write(dev, B43_HTTAB16(8, 0x10), 0x02);
 	b43_httab_write(dev, B43_HTTAB16(8, 0x20), 0x02);
 
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x08), 3, 0x8e, 0x96, 0x96);
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x18), 3, 0x8f, 0x9f, 0x9f);
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x28), 3, 0x8f, 0x9f, 0x9f);
-
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x0c), 3, 0x2, 0x2, 0x2);
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x1c), 3, 0x2, 0x2, 0x2);
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x2c), 3, 0x2, 0x2, 0x2);
-
 	for (i = 0; i < 3; i++) {
 		b43_httab_write(dev, B43_HTTAB16(8, 0x0b + i * 0x10), 0x96);
 		b43_httab_write(dev, B43_HTTAB16(8, 0x0f + i * 0x10), 0);
 	}
-
-	b43_phy_maskset(dev, 0x0280, 0xff00, 0x3e);
-	b43_phy_maskset(dev, 0x0283, 0xff00, 0x3e);
-	b43_phy_maskset(dev, B43_PHY_OFDM(0x0141), 0xff00, 0x46);
-	b43_phy_maskset(dev, 0x0283, 0xff00, 0x40);
-
-	b43_httab_write_few(dev, B43_HTTAB16(00, 0x8), 4,
-			    0x09, 0x0e, 0x13, 0x18);
-	b43_httab_write_few(dev, B43_HTTAB16(01, 0x8), 4,
-			    0x09, 0x0e, 0x13, 0x18);
-	/* TODO: Did wl mean 2 instead of 40? */
-	b43_httab_write_few(dev, B43_HTTAB16(40, 0x8), 4,
-			    0x09, 0x0e, 0x13, 0x18);
-
-	b43_phy_maskset(dev, B43_PHY_OFDM(0x24), 0x3f, 0xd);
-	b43_phy_maskset(dev, B43_PHY_OFDM(0x64), 0x3f, 0xd);
-	b43_phy_maskset(dev, B43_PHY_OFDM(0xa4), 0x3f, 0xd);
 
 	b43_phy_set(dev, B43_PHY_EXTG(0x060), 0x1);
 	b43_phy_set(dev, B43_PHY_EXTG(0x064), 0x1);
