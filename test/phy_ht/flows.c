@@ -193,12 +193,35 @@ void usleep_range_state(unsigned long min, unsigned long max,
 			unsigned int state) { }
 unsigned long volatile jiffies;
 unsigned long round_jiffies(unsigned long j) { return j; }
-void kfree(const void *p) { UNREACHED("kfree"); }
+/* Allocations from a static arena, never freed: a run is short */
+static u8 arena[1 << 16] __aligned(8);
+static size_t arena_used;
+
+static void *arena_alloc(size_t size)
+{
+	void *p;
+
+	size = ALIGN(size, 8);
+	if (arena_used + size > sizeof(arena)) {
+		UNREACHED("kmalloc beyond the arena");
+		return NULL;
+	}
+	p = arena + arena_used;
+	arena_used += size;
+	memset(p, 0, size);
+	return p;
+}
+
+void kfree(const void *p) { }
 void *__kmalloc_cache_noprof(struct kmem_cache *s, gfp_t flags, size_t size)
 {
-	UNREACHED("kmalloc");
-	return NULL;
+	return arena_alloc(size);
 }
+void *__kmalloc_noprof(size_t size, gfp_t flags)
+{
+	return arena_alloc(size);
+}
+
 struct kmem_cache *kmalloc_caches[NR_KMALLOC_TYPES][KMALLOC_SHIFT_HIGH + 1];
 void mutex_lock(struct mutex *lock) { }
 void mutex_unlock(struct mutex *lock) { }
