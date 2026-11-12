@@ -5595,6 +5595,24 @@ static int b43_ac_phy_recycle(struct b43_wldev *dev)
 }
 
 /*
+ * When the BSS starts, the HT-PHY's stock driver initialises the PHY again,
+ * on the radio and PHY it has initialised once: no tables, no radio
+ * calibrations, and its calibrations after. This is that init for the PHY,
+ * as b43_ac_phy_recycle() is the AC's retune; the core's down and up around
+ * it in the stock driver are left out. b43_phy_init() turns the HT radio
+ * off itself.
+ */
+static int b43_ht_phy_recycle(struct b43_wldev *dev)
+{
+	int err;
+
+	err = b43_phy_init(dev);
+	if (err)
+		b43_controller_restart(dev, "PHY cycle failed");
+	return err;
+}
+
+/*
  * The channel availability check mutes the MAC, so that the BSS neither
  * transmits nor answers on a channel it may not use yet. Three things, in the
  * order the stock driver writes them at the bus:
@@ -5888,6 +5906,10 @@ static void b43_op_bss_info_changed(struct ieee80211_hw *hw,
 	if (dev->phy.type == B43_PHYTYPE_AC &&
 	    changed & BSS_CHANGED_BEACON_ENABLED && conf->enable_beacon)
 		b43_ac_dump_tx_state(dev, "beaconing");
+
+	if (dev->phy.type == B43_PHYTYPE_HT &&
+	    changed & BSS_CHANGED_BEACON_ENABLED && conf->enable_beacon)
+		b43_ht_phy_recycle(dev);
 
 	b43_mac_enable(dev);
 out_unlock_mutex:
