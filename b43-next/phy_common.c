@@ -640,8 +640,9 @@ void b43_phy_force_clock(struct b43_wldev *dev, bool force)
 		else
 			tmp &= ~BCMN_IOCTL_FGC;
 		bcmn_awrite32(dev->dev->bdev, BCMN_IOCTL, tmp);
-		/* The AC cores' stock driver reads the IOCTL back. */
-		if (dev->phy.type == B43_PHYTYPE_AC)
+		/* The AC and HT cores' stock driver reads the IOCTL back. */
+		if (dev->phy.type == B43_PHYTYPE_AC ||
+		    dev->phy.type == B43_PHYTYPE_HT)
 			bcmn_aread32(dev->dev->bdev, BCMN_IOCTL);
 		break;
 #endif
