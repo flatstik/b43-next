@@ -1232,9 +1232,12 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	b43_phy_ht_tssi_setup(dev);
 	b43_phy_ht_tx_power_ctl(dev, saved_tx_pwr_ctl);
 
-	b43_phy_ht_gain_state_read(dev, &phy_ht->gain_state);
-	b43_phy_ht_gain_state_write(dev, &phy_ht->gain_state);
-	b43_phy_ht_gain_state_write(dev, &phy_ht->gain_state);
+	/* Only after the first init, as wl */
+	if (dev->phy.do_full_init) {
+		b43_phy_ht_gain_state_read(dev, &phy_ht->gain_state);
+		b43_phy_ht_gain_state_write(dev, &phy_ht->gain_state);
+		b43_phy_ht_gain_state_write(dev, &phy_ht->gain_state);
+	}
 
 	b43_httab_write_few(dev, B43_HTTAB16(7, 0x10), 9, 0x4, 0x3, 0x6, 0x5,
 			    0x2, 0x1, 0x8, 0x1f, 0x1f);
