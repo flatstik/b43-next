@@ -670,6 +670,27 @@ static void b43_phy_ht_tssi_setup(struct b43_wldev *dev)
 	}
 }
 
+/* The TX power control's target of each core from the SROM, in qdBm */
+static void b43_phy_ht_sprom_target(struct b43_wldev *dev, u8 *target)
+{
+	struct ssbn_sprom *sprom = dev->dev->bus_sprom;
+	u16 freq = dev->phy.chandef->chan->center_freq;
+	int c;
+
+	for (c = 0; c < 3; c++) {
+		if (b43_current_band(dev->wl) == NL80211_BAND_2GHZ)
+			target[c] = sprom->core_pwr_info[c].maxpwr_2g;
+		else if (freq >= 4900 && freq < 5100)
+			target[c] = sprom->core_pwr_info[c].maxpwr_5gl;
+		else if (freq >= 5100 && freq < 5500)
+			target[c] = sprom->core_pwr_info[c].maxpwr_5g;
+		else if (freq >= 5500)
+			target[c] = sprom->core_pwr_info[c].maxpwr_5gh;
+		else
+			target[c] = 52;
+	}
+}
+
 static void b43_phy_ht_tx_power_ctl_setup(struct b43_wldev *dev)
 {
 	struct b43_phy_ht *phy_ht = dev->phy.ht;
@@ -684,38 +705,38 @@ static void b43_phy_ht_tx_power_ctl_setup(struct b43_wldev *dev)
 
 	if (b43_current_band(dev->wl) == NL80211_BAND_2GHZ) {
 		for (c = 0; c < 3; c++) {
-			target[c] = sprom->core_pwr_info[c].maxpwr_2g;
 			a1[c] = sprom->core_pwr_info[c].pa_2g[0];
 			b0[c] = sprom->core_pwr_info[c].pa_2g[1];
 			b1[c] = sprom->core_pwr_info[c].pa_2g[2];
 		}
 	} else if (freq >= 4900 && freq < 5100) {
 		for (c = 0; c < 3; c++) {
-			target[c] = sprom->core_pwr_info[c].maxpwr_5gl;
 			a1[c] = sprom->core_pwr_info[c].pa_5gl[0];
 			b0[c] = sprom->core_pwr_info[c].pa_5gl[1];
 			b1[c] = sprom->core_pwr_info[c].pa_5gl[2];
 		}
 	} else if (freq >= 5100 && freq < 5500) {
 		for (c = 0; c < 3; c++) {
-			target[c] = sprom->core_pwr_info[c].maxpwr_5g;
 			a1[c] = sprom->core_pwr_info[c].pa_5g[0];
 			b0[c] = sprom->core_pwr_info[c].pa_5g[1];
 			b1[c] = sprom->core_pwr_info[c].pa_5g[2];
 		}
 	} else if (freq >= 5500) {
 		for (c = 0; c < 3; c++) {
-			target[c] = sprom->core_pwr_info[c].maxpwr_5gh;
 			a1[c] = sprom->core_pwr_info[c].pa_5gh[0];
 			b0[c] = sprom->core_pwr_info[c].pa_5gh[1];
 			b1[c] = sprom->core_pwr_info[c].pa_5gh[2];
 		}
 	} else {
-		target[0] = target[1] = target[2] = 52;
 		a1[0] = a1[1] = a1[2] = -424;
 		b0[0] = b0[1] = b0[2] = 5612;
 		b1[0] = b1[1] = b1[2] = -1393;
 	}
+
+	b43_phy_ht_sprom_target(dev, target);
+	for (c = 0; c < 3; c++)
+		if (phy_ht->tx_pwr_target[c])
+			target[c] = phy_ht->tx_pwr_target[c];
 
 	b43_phy_set(dev, B43_PHY_HT_TSSIMODE, B43_PHY_HT_TSSIMODE_EN);
 	b43_phy_mask(dev, B43_PHY_HT_TXPCTL_CMD_C1,
@@ -1318,14 +1339,45 @@ static void b43_phy_ht_op_radio_write(struct b43_wldev *dev, u16 reg,
 	b43_write16(dev, B43_MMIO_RADIO24_DATA, value);
 }
 
+/*
+ * The target of each core: its SROM maximum for the band, capped by the
+ * regulatory and the user's limit.
+ */
 static enum b43_txpwr_result
 b43_phy_ht_op_recalc_txpower(struct b43_wldev *dev, bool ignore_tssi)
 {
-	return B43_TXPWR_RES_DONE;
+	struct b43_phy *phy = &dev->phy;
+	struct b43_phy_ht *phy_ht = phy->ht;
+	u8 target[3], cap = 0xff;
+	int c;
+
+	if (phy->chandef->chan->max_power)
+		cap = min_t(int, cap, phy->chandef->chan->max_power * 4);
+	if (phy->desired_txpower)
+		cap = min_t(int, cap, phy->desired_txpower * 4);
+
+	b43_phy_ht_sprom_target(dev, target);
+	for (c = 0; c < 3; c++)
+		target[c] = min(target[c], cap);
+	if (!memcmp(target, phy_ht->tx_pwr_target, sizeof(target)))
+		return B43_TXPWR_RES_DONE;
+	memcpy(phy_ht->tx_pwr_target, target, sizeof(target));
+	return B43_TXPWR_RES_NEED_ADJUST;
 }
 
+/*
+ * As wl does when its target changes: it reads each core's estimate at
+ * index 2 three times, sets the control up again and turns it on.
+ */
 static void b43_phy_ht_op_adjust_txpower(struct b43_wldev *dev)
 {
+	int i, c;
+
+	for (i = 0; i < 3; i++)
+		for (c = 0; c < 3; c++)
+			b43_httab_read(dev, B43_HTTAB8(26 + c, 2));
+	b43_phy_ht_tx_power_ctl_setup(dev);
+	b43_phy_ht_tx_power_ctl(dev, true);
 }
 
 /**************************************************

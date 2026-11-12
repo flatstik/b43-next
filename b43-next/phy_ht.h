@@ -134,6 +134,7 @@ struct b43_phy_ht {
 	struct b43_phy_ht_gain_state gain_state;
 	bool tx_pwr_ctl;
 	u8 tx_pwr_idx[3];
+	u8 tx_pwr_target[3];
 
 	s32 bb_mult_save[3];
 
