@@ -141,6 +141,27 @@ static void b43_radio_2059_init_pre(struct b43_wldev *dev)
 	b43_phy_set(dev, B43_PHY_HT_RF_CTL_CMD, B43_PHY_HT_RF_CTL_CMD_CHIP0_PU);
 }
 
+/*
+ * What wl does after the RC calibration: the results in 0x14c-0x14e go to
+ * 0x0c2, 0x0c3 and 0x0a1 of every core, with constants in between.
+ */
+static void b43_radio_2059_rccal_apply(struct b43_wldev *dev)
+{
+	u16 res[3];
+	int i;
+
+	for (i = 0; i < 3; i++)
+		res[i] = b43_radio_read(dev, 0x14c + i);
+
+	b43_radio_write(dev, 0x00a, 0x66);
+	b43_radio_write(dev, 0x183, 0x40);
+	b43_radio_write(dev, R2059_ALL | 0x0a1, res[2]);
+	b43_radio_write(dev, R2059_ALL | 0x18d, 0x40);
+	b43_radio_write(dev, R2059_ALL | 0x14f, 0x3);
+	b43_radio_write(dev, R2059_ALL | 0x0c2, res[0]);
+	b43_radio_write(dev, R2059_ALL | 0x0c3, res[1]);
+}
+
 static void b43_radio_2059_init(struct b43_wldev *dev)
 {
 	static const u16 routing[] = { R2059_C1, R2059_C2, R2059_C3 };
@@ -177,6 +198,7 @@ static void b43_radio_2059_init(struct b43_wldev *dev)
 	if (1) { /* FIXME */
 		b43_radio_2059_rcal(dev);
 		b43_radio_2057_rccal(dev);
+		b43_radio_2059_rccal_apply(dev);
 	}
 
 	b43_radio_mask(dev, R2059_RFPLL_MASTER, ~0x0008);
