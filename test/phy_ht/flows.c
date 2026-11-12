@@ -79,6 +79,10 @@ static struct b43_wldev *setup(void)
 	busdev.bus_sprom = &sprom;
 
 	sprom.revision = ht_nvram("sromrev", 0);
+	sprom.boardflags_lo = ht_nvram("boardflags", 0) & 0xffff;
+	sprom.boardflags_hi = ht_nvram("boardflags", 0) >> 16;
+	sprom.boardflags2_lo = ht_nvram("boardflags2", 0) & 0xffff;
+	sprom.boardflags2_hi = ht_nvram("boardflags2", 0) >> 16;
 	for (c = 0; c < 3; c++) {
 		char v[16];
 		int k;
