@@ -150,8 +150,8 @@ int ht_run_flow(const char *name)
 		run_turns(dev);
 	} else if (!strcmp(name, "ap_start")) {
 		/*
-		 * b43_ht_phy_recycle() when beaconing starts: the PHY init on
-		 * a PHY initialised once. What the up left, the RC
+		 * The bss_start op when beaconing starts: the PHY init on a PHY
+		 * initialised once, and what follows it. What the up left, the RC
 		 * calibration's results and the table 0x25 pair, is given
 		 * from the capture's up.
 		 */
@@ -161,7 +161,7 @@ int ht_run_flow(const char *name)
 		phy_ht.rccal[2] = ht_env("HT_RCCAL2", 0);
 		phy_ht.t25_off = ht_env("HT_T25", 0);
 		phy_ht.t25_set = true;
-		b43_phy_init(dev);
+		b43_phy_ht_op_bss_start(dev);
 		run_turns(dev);
 	} else if (!strcmp(name, "pctl_init")) {
 		/* The TX power control at the end of b43_phy_ht_op_init() */
@@ -211,6 +211,10 @@ void ieee80211_queue_work(struct ieee80211_hw *h, struct work_struct *w)
  * b43's core: on hardware these make MMIO accesses of their own, which the
  * harness does not emit. The calls are counted.
  */
+void b43_controller_restart(struct b43_wldev *dev, const char *reason)
+{
+	ht_log(reason);
+}
 void b43_mac_suspend(struct b43_wldev *dev) { ht_core("b43_mac_suspend"); }
 void b43_mac_enable(struct b43_wldev *dev) { ht_core("b43_mac_enable"); }
 void b43_mac_switch_freq(struct b43_wldev *dev, u8 spurmode)
