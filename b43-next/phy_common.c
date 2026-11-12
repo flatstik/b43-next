@@ -94,6 +94,9 @@ int b43_phy_init(struct b43_wldev *dev)
 		phy->channel = phy->chandef->chan->hw_value;
 	}
 
+	/* The HT-PHY's stock driver turns the radio off before the analog on */
+	if (phy->type == B43_PHYTYPE_HT)
+		b43_software_rfkill(dev, true);
 	phy->ops->switch_analog(dev, true);
 	b43_software_rfkill(dev, false);
 
