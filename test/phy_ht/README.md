@@ -24,11 +24,17 @@ is `grezzo`, with its two parameters.
 
 On 2026-11-12, `--min-block 8 --gap-tol 2`:
 
-| capture | grezzo |
-|---|---|
-| cold-2g1-20 | 4361/49011 = 8.90% |
-| cold-2g6-20 | 4361/39889 = 10.93% |
-| cold-2g11-20 | 4361/44885 = 9.72% |
+| capture | grezzo | PHY+radio |
+|---|---|---|
+| cold-2g1-20 | 4361/49024 = 8.90% | 4389/26243 = 16.72% |
+| cold-2g6-20 | 4361/39902 = 10.93% | 4389/26250 = 16.72% |
+| cold-2g11-20 | 4361/44898 = 9.71% | 4389/26235 = 16.73% |
+
+The second row compares the PHY's and radio's operations only: the core's
+MMIO, shared memory and wrapper accesses are outside a harness that
+compiles no core. `full` makes the PHY calls of b43's core in its order:
+the analog switch of `b43_wireless_core_reset()` and of
+`b43_phy_bringup()`, then `b43_phy_init()`.
 
 b43 emits 4801 ops, wl 40 to 49 thousand: wl initialises the PHY again at
 `ssid`, with its calibrations, and b43 has neither. The calls b43's PHY makes

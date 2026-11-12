@@ -120,9 +120,15 @@ int ht_run_flow(const char *name)
 	else if (!strcmp(name, "pctl_on"))
 		b43_phy_ht_tx_power_ctl(dev, true);
 	else if (!strcmp(name, "full")) {
-		/* What b43 runs of the PHY from its init to the BSS up */
+		/*
+		 * What b43 runs of the PHY from its init to the BSS up: the
+		 * analog switch of b43_wireless_core_reset() and of
+		 * b43_phy_bringup(), then b43_phy_init().
+		 */
 		dev->phy.chandef = NULL;
 		dev->phy.do_full_init = true;
+		dev->phy.ops->switch_analog(dev, true);
+		dev->phy.ops->switch_analog(dev, true);
 		b43_phy_init(dev);
 	} else if (!strcmp(name, "pctl_init")) {
 		/* The TX power control at the end of b43_phy_ht_op_init() */
