@@ -372,17 +372,25 @@ static u16 b43_phy_ht_load_samples(struct b43_wldev *dev)
 	return len;
 }
 
+static void b43_phy_ht_save_bb_mult(struct b43_wldev *dev)
+{
+	struct b43_phy_ht *phy_ht = dev->phy.ht;
+	int i;
+
+	for (i = 0; i < 3; i++)
+		if (phy_ht->bb_mult_save[i] < 0)
+			phy_ht->bb_mult_save[i] =
+				b43_httab_read(dev, B43_HTTAB16(13, 0x63 + i * 4));
+}
+
 static void b43_phy_ht_run_samples(struct b43_wldev *dev, u16 samps, u16 loops,
 				   u16 wait)
 {
-	struct b43_phy_ht *phy_ht = dev->phy.ht;
 	u16 save_seq_mode;
 	int i;
 
-	for (i = 0; i < 3; i++) {
-		if (phy_ht->bb_mult_save[i] < 0)
-			phy_ht->bb_mult_save[i] = b43_httab_read(dev, B43_HTTAB16(13, 0x63 + i * 4));
-	}
+	b43_phy_ht_save_bb_mult(dev);
+	b43_phy_ht_reset_cca(dev);
 
 	b43_phy_write(dev, B43_PHY_HT_SAMP_DEP_CNT, samps - 1);
 	if (loops != 0xFFFF)
