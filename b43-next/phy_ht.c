@@ -143,15 +143,12 @@ static void b43_radio_2059_init_pre(struct b43_wldev *dev)
 
 /*
  * What wl does after the RC calibration: the results in 0x14c-0x14e go to
- * 0x0c2, 0x0c3 and 0x0a1 of every core, with constants in between.
+ * 0x0c2, 0x0c3 and 0x0a1 of every core, with constants in between. A later
+ * init writes the same results without calibrating again.
  */
 static void b43_radio_2059_rccal_apply(struct b43_wldev *dev)
 {
-	u16 res[3];
-	int i;
-
-	for (i = 0; i < 3; i++)
-		res[i] = b43_radio_read(dev, 0x14c + i);
+	u16 *res = dev->phy.ht->rccal;
 
 	b43_radio_write(dev, 0x00a, 0x66);
 	b43_radio_write(dev, 0x183, 0x40);
@@ -195,11 +192,13 @@ static void b43_radio_2059_init(struct b43_wldev *dev)
 	b43_radio_mask(dev, R2059_RFPLL_MISC_CAL_RESETN, ~0x0078);
 	b43_radio_mask(dev, R2059_XTAL_CONFIG2, ~0x0080);
 
-	if (1) { /* FIXME */
+	if (dev->phy.do_full_init) {
 		b43_radio_2059_rcal(dev);
 		b43_radio_2057_rccal(dev);
-		b43_radio_2059_rccal_apply(dev);
+		for (i = 0; i < 3; i++)
+			dev->phy.ht->rccal[i] = b43_radio_read(dev, 0x14c + i);
 	}
+	b43_radio_2059_rccal_apply(dev);
 
 	b43_radio_mask(dev, R2059_RFPLL_MASTER, ~0x0008);
 }
@@ -905,7 +904,10 @@ static void b43_phy_ht_gain_ctl_setup(struct b43_wldev *dev,
 		0x1, 0x1, 0x2, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3, 0x3,
 	};
 	static const u16 reg16[3] = { 0x4c, 0x4c, 0x6c };
-	/* One per channel modulo 4, the same on every capture */
+	/*
+	 * One per channel modulo 4, the same on every capture; a later
+	 * setup first clears the pair the previous one set.
+	 */
 	static const u16 t25_off[4] = { 0x2a, 0x19, 0x09, 0x3a };
 	struct b43_phy_ht *phy_ht = dev->phy.ht;
 	u16 buf[4];
@@ -977,8 +979,13 @@ static void b43_phy_ht_gain_ctl_setup(struct b43_wldev *dev,
 		b43_httab_read(dev, B43_HTTAB16(lna[c], 0x00));
 	}
 
-	b43_httab_write_few(dev, B43_HTTAB32(0x25, t25_off[channel->hw_value % 4]),
-			    2, 0xa, 0xa);
+	if (phy_ht->t25_set)
+		b43_httab_write_few(dev, B43_HTTAB32(0x25, phy_ht->t25_off), 2,
+				    0, 0);
+	phy_ht->t25_off = t25_off[channel->hw_value % 4];
+	phy_ht->t25_set = true;
+	b43_httab_write_few(dev, B43_HTTAB32(0x25, phy_ht->t25_off), 2,
+			    0xa, 0xa);
 	for (c = 0; c < 3; c++) {
 		b43_httab_write(dev, B43_HTTAB16(8, 0x0b + c * 0x10), 0x96);
 		b43_httab_write(dev, B43_HTTAB16(8, 0x0f + c * 0x10), 0);
@@ -992,10 +999,15 @@ static void b43_phy_ht_gain_ctl_setup(struct b43_wldev *dev,
 			b43_phy_maskset(dev, 0x273 + c * 3, 0xff00, 0x62);
 			b43_phy_maskset(dev, 0x273 + c * 3, 0x00ff, 0x5f00);
 		}
-		if (!i) {
-			b43_phy_write(dev, 0x1df, 0x1591);
-			b43_phy_write(dev, 0x1e1, 0x1591);
+		if (i)
+			continue;
+		/* On a later init wl writes these two again here */
+		if (!dev->phy.do_full_init) {
+			b43_phy_maskset(dev, 0x280, 0xff00, 0x3a);
+			b43_phy_maskset(dev, 0x283, 0xff00, 0x3a);
 		}
+		b43_phy_write(dev, 0x1df, 0x1591);
+		b43_phy_write(dev, 0x1e1, 0x1591);
 	}
 }
 
@@ -1119,7 +1131,8 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 		return -EOPNOTSUPP;
 	}
 
-	b43_phy_ht_tables_init(dev);
+	if (dev->phy.do_full_init)
+		b43_phy_ht_tables_init(dev);
 
 	b43_phy_mask(dev, 0x0be, ~0x2);
 

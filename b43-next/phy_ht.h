@@ -140,6 +140,9 @@ struct b43_phy_ht {
 
 	u8 idle_tssi[3];
 	u8 tssi_delay;
+	u16 rccal[3];
+	u16 t25_off;
+	bool t25_set;
 };
 
 
