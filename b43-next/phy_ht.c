@@ -411,7 +411,7 @@ static void b43_phy_ht_save_bb_mult(struct b43_wldev *dev)
 }
 
 static void b43_phy_ht_run_samples(struct b43_wldev *dev, u16 samps, u16 loops,
-				   u16 wait)
+				   u16 wait, bool iqmode)
 {
 	u16 save_seq_mode;
 	int i;
@@ -432,8 +432,11 @@ static void b43_phy_ht_run_samples(struct b43_wldev *dev, u16 samps, u16 loops,
 	/* TODO: find out mask bits! Do we need more function arguments? */
 	b43_phy_mask(dev, B43_PHY_HT_SAMP_CMD, ~0);
 	b43_phy_mask(dev, B43_PHY_HT_SAMP_CMD, ~0);
-	b43_phy_mask(dev, B43_PHY_HT_IQLOCAL_CMDGCTL, ~0);
-	b43_phy_set(dev, B43_PHY_HT_SAMP_CMD, 0x1);
+	b43_phy_mask(dev, B43_PHY_HT_IQLOCAL_CMDGCTL, 0x7fff);
+	if (iqmode)
+		b43_phy_set(dev, B43_PHY_HT_IQLOCAL_CMDGCTL, 0x8000);
+	else
+		b43_phy_set(dev, B43_PHY_HT_SAMP_CMD, 0x1);
 
 	for (i = 0; i < 100; i++) {
 		if (!(b43_phy_read(dev, B43_PHY_HT_RF_SEQ_STATUS) & 1)) {
@@ -635,7 +638,7 @@ static void b43_phy_ht_tx_power_ctl_idle_tssi(struct b43_wldev *dev)
 	b43_phy_ht_read_clip_detection(dev, clip_state);
 	b43_phy_ht_write_clip_detection(dev, clip_off);
 
-	b43_phy_ht_run_samples(dev, 1, 0xFFFF, 0);
+	b43_phy_ht_run_samples(dev, 1, 0xFFFF, 0, false);
 
 	b43_phy_ht_classifier(dev, B43_PHY_HT_CLASS_CTL_CCK_EN |
 				   B43_PHY_HT_CLASS_CTL_OFDM_EN, class);
