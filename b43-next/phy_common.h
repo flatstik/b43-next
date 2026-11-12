@@ -171,6 +171,10 @@ enum b43_txpwr_result {
  * 			beacons. Called by the core right after it releases the
  * 			MAC, for the PHY to run what the check held back.
  * 			Can be NULL, if not required.
+ * @bss_start:		The BSS starts beaconing. Called by the core with the
+ * 			MAC suspended, for a PHY whose stock driver initialises
+ * 			and calibrates again there.
+ * 			Can be NULL, if not required.
  */
 struct b43_phy_operations {
 	/* Initialisation */
@@ -212,6 +216,7 @@ struct b43_phy_operations {
 	bool (*radar_poll)(struct b43_wldev *dev);
 	void (*beacon_rate_set)(struct b43_wldev *dev, bool cck);
 	void (*cac_done)(struct b43_wldev *dev);
+	void (*bss_start)(struct b43_wldev *dev);
 };
 
 struct b43_phy_g;
