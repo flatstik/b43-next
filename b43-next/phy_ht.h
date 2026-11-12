@@ -143,6 +143,7 @@ struct b43_phy_ht {
 	u16 rccal[3];
 	u16 t25_off;
 	bool t25_set;
+	unsigned int wd_turns;
 };
 
 

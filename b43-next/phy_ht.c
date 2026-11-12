@@ -1231,6 +1231,7 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	b43_phy_ht_tx_power_ctl_setup(dev);
 	b43_phy_ht_tssi_setup(dev);
 	b43_phy_ht_tx_power_ctl(dev, saved_tx_pwr_ctl);
+	phy_ht->wd_turns = 0;
 
 	/* Only after the first init, as wl */
 	if (dev->phy.do_full_init) {
@@ -1385,6 +1386,22 @@ b43_phy_ht_op_recalc_txpower(struct b43_wldev *dev, bool ignore_tssi)
  * As wl does when its target changes: it reads each core's estimate at
  * index 2 three times, sets the control up again and turns it on.
  */
+/*
+ * wl's 1 s watchdog: on every second turn after an init it writes the low
+ * bytes of 0x280 and 0x283 again, with the MAC suspended.
+ */
+static void b43_phy_ht_op_pwork_1sec(struct b43_wldev *dev)
+{
+	struct b43_phy_ht *phy_ht = dev->phy.ht;
+
+	if (++phy_ht->wd_turns % 2)
+		return;
+	b43_mac_suspend(dev);
+	b43_phy_maskset(dev, 0x280, 0xff00, 0x3a);
+	b43_phy_maskset(dev, 0x283, 0xff00, 0x3a);
+	b43_mac_enable(dev);
+}
+
 static void b43_phy_ht_op_adjust_txpower(struct b43_wldev *dev)
 {
 	int i, c;
@@ -1414,4 +1431,5 @@ const struct b43_phy_operations b43_phyops_ht = {
 	.get_default_chan	= b43_phy_ht_op_get_default_chan,
 	.recalc_txpower		= b43_phy_ht_op_recalc_txpower,
 	.adjust_txpower		= b43_phy_ht_op_adjust_txpower,
+	.pwork_1sec		= b43_phy_ht_op_pwork_1sec,
 };
