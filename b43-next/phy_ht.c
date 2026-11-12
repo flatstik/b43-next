@@ -247,6 +247,25 @@ static void b43_phy_ht_reset_cca(struct b43_wldev *dev)
 	b43_phy_ht_force_rf_sequence(dev, B43_PHY_HT_RF_SEQ_TRIG_RST2RX);
 }
 
+/* Rows 2, 1 and 3 of the N-PHY's tbl_tx_filter_coef_rev4 */
+static void b43_phy_ht_tx_dig_filters(struct b43_wldev *dev)
+{
+	static const u16 offset[] = { 0x2ca, 0x195, 0x186 };
+	static const s16 filter[3][15] = {
+		{ -360, 164, -376, 164, -1533, 576, 308, -314, 308,
+		  121, -73, 121, 91, 124, 91 },
+		{ -77, 20, -98, 49, -93, 60, 56, 111, 56,
+		  26, -5, 26, 34, -32, 34 },
+		{ -295, 200, -363, 142, -1391, 826, 151, 301, 151,
+		  151, 301, 151, 602, -752, 602 },
+	};
+	int i, j;
+
+	for (i = 0; i < ARRAY_SIZE(offset); i++)
+		for (j = 0; j < 15; j++)
+			b43_phy_write(dev, offset[i] + j, filter[i][j]);
+}
+
 static void b43_phy_ht_zero_extg(struct b43_wldev *dev)
 {
 	u8 i, j;
@@ -914,6 +933,8 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	b43_phy_write(dev, B43_PHY_EXTG(0x14f), 0xc8);
 	b43_phy_write(dev, 0x70, 0x50);
 	b43_phy_write(dev, 0x1ff, 0x30);
+	b43_phy_ht_tx_dig_filters(dev);
+	b43_phy_write(dev, B43_PHY_EXTG(0x18f), 0);
 
 	if (b43_current_band(dev->wl) == NL80211_BAND_5GHZ)
 		b43_phy_ht_classifier(dev, B43_PHY_HT_CLASS_CTL_CCK_EN, 0);
