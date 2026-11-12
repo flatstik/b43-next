@@ -869,8 +869,6 @@ static void b43_phy_ht_channel_setup(struct b43_wldev *dev,
 		b43_phy_ht_tx_power_fix(dev);
 
 	b43_phy_ht_spur_avoid(dev, new_channel);
-
-	b43_phy_write(dev, 0x017e, 0x3830);
 }
 
 static int b43_phy_ht_set_channel(struct b43_wldev *dev,
@@ -982,7 +980,6 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	b43_phy_write(dev, 0x32f, 0x0003);
 	b43_phy_write(dev, 0x077, 0x0010);
 	b43_phy_write(dev, 0x0b4, 0x0258);
-	b43_phy_mask(dev, 0x17e, ~0x4000);
 
 	b43_phy_write(dev, 0x0b9, 0x0072);
 

@@ -26,9 +26,9 @@ On 2026-11-12, `--min-block 8 --gap-tol 2`:
 
 | capture | grezzo | PHY+radio |
 |---|---|---|
-| cold-2g1-20 | 4365/49023 = 8.90% | 4394/26240 = 16.75% |
-| cold-2g6-20 | 4365/39901 = 10.94% | 4394/26247 = 16.74% |
-| cold-2g11-20 | 4365/44897 = 9.72% | 4394/26232 = 16.75% |
+| cold-2g1-20 | 4392/49020 = 8.96% | 4413/26236 = 16.82% |
+| cold-2g6-20 | 4392/39898 = 11.01% | 4413/26243 = 16.82% |
+| cold-2g11-20 | 4392/44894 = 9.78% | 4413/26228 = 16.83% |
 
 The second row compares the PHY's and radio's operations only: the core's
 MMIO, shared memory and wrapper accesses are outside a harness that
