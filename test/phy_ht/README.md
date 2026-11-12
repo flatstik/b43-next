@@ -33,7 +33,7 @@ On 2026-11-12, `--min-block 8 --gap-tol 2`:
 b43 emits 4801 ops, wl 40 to 49 thousand: wl initialises the PHY again at
 `ssid`, with its calibrations, and b43 has neither. The calls b43's PHY makes
 into its core (MAC suspend, shared memory, PLL) are counted on stderr but
-emit no ops here.
+emit no ops here. What is left is mapped in `../../docs/ht-retrace-todo.md`.
 
 `check.sh` takes `$TRACES/bcm4331-rev2/r6400v1`: the board values from its
 `nvram.txt`, the windows from its `traces/mmio-*`. A window runs from the
