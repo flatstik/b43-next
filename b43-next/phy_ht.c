@@ -1092,9 +1092,6 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	b43_phy_ht_tables_init(dev);
 
 	b43_phy_mask(dev, 0x0be, ~0x2);
-	b43_phy_set(dev, 0x23f, 0x7ff);
-	b43_phy_set(dev, 0x240, 0x7ff);
-	b43_phy_set(dev, 0x241, 0x7ff);
 
 	b43_phy_ht_zero_extg(dev);
 
