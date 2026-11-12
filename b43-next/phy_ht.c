@@ -1144,10 +1144,15 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 		b43_httab_write(dev, B43_HTTAB16(8, 0x0f + i * 0x10), 0);
 	}
 
-	b43_phy_set(dev, B43_PHY_EXTG(0x060), 0x1);
-	b43_phy_set(dev, B43_PHY_EXTG(0x064), 0x1);
-	b43_phy_set(dev, B43_PHY_EXTG(0x080), 0x1);
-	b43_phy_set(dev, B43_PHY_EXTG(0x084), 0x1);
+	b43_phy_maskset(dev, 0x1dd, 0xff00, 0x1c);
+	b43_phy_maskset(dev, 0x1db, 0xff00, 0x55);
+	b43_phy_maskset(dev, 0x1d9, 0xff00, 0x1c);
+	b43_phy_maskset(dev, 0x1d7, 0xff00, 0x55);
+	b43_phy_write(dev, 0x06a, 0x2);
+	b43_phy_set(dev, 0x324, 0x0f00);
+	b43_phy_set(dev, B43_PHY_OFDM(0x004), 0x2000);
+	b43_phy_set(dev, B43_PHY_OFDM(0x044), 0x2000);
+	b43_phy_set(dev, B43_PHY_OFDM(0x084), 0x2000);
 
 	/* Copy some tables entries */
 	tmp = b43_httab_read(dev, B43_HTTAB16(7, 0x144));
