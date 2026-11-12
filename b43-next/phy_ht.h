@@ -125,8 +125,6 @@ struct b43_phy_ht_channeltab_e_phy {
 
 
 struct b43_phy_ht {
-	u16 rf_ctl_int_save[3];
-
 	bool tx_pwr_ctl;
 	u8 tx_pwr_idx[3];
 
