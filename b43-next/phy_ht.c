@@ -147,6 +147,18 @@ static void b43_radio_2059_init(struct b43_wldev *dev)
 	/* Prepare (reset?) radio */
 	b43_radio_2059_init_pre(dev);
 
+	/*
+	 * Between two of these wl writes 8 to 0x39 of each core through the
+	 * other radio interface, the core in bits 12-13. Which register that
+	 * is, is not known.
+	 */
+	for (i = 0; i < ARRAY_SIZE(routing); i++) {
+		b43_write16(dev, B43_MMIO_RADIO_CONTROL, i << 12 | 0x39);
+		b43_read16(dev, B43_MMIO_RADIO_CONTROL);
+		b43_write16(dev, B43_MMIO_RADIO_DATA_LOW, 0x8);
+	}
+	b43_radio_2059_init_pre(dev);
+
 	r2059_upload_inittabs(dev);
 
 	for (i = 0; i < ARRAY_SIZE(routing); i++)
