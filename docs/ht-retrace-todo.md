@@ -27,6 +27,19 @@ The unmatched runs of at least 20 wl ops:
 | #1156-#1527 | table writes from table 2 entry 0x20 on, radio reads in between |
 | #5738-#9669 | after the TX power control: the core (1540 MMIO reads, 876 shared memory writes) and 346 PHY writes |
 
+In order, PHY and radio only (`compare.py --bus` on the two streams
+filtered to `PHY.*` and `RAD.*`), b43 follows wl up to the end of the
+channel setup's power fix, op 274 of the window. There wl sets up the gain
+control (#1011-#1182 on ch 6, 170 PHY and radio operations): registers
+0x541, 0x280/0x283, 0x4x4, 0x40d-0x417 and 0x410/0x411 per core, the
+entries 0x00-0x29 of the gain tables 0x00-0x03, 0x28 and 0x29, the groups
+of table 8, a run of reads of gain registers, tables 0 and 4 and the
+radio, and read-modify-writes of 0x273, 0x276 and 0x279. It is the same on
+every capture but for one table 0x25 write, whose offset depends on the
+channel and the width (0x009 on ch 6, 0x019 on ch 1, 0x03a on ch 11) by a
+rule not yet known. b43 has pieces of it in `b43_phy_ht_op_init()`, after
+the tables, with other values.
+
 The PHY's calls into the core (`b43_mac_suspend()`, the shared memory,
 `b43_mac_switch_freq()`, the PLL) emit nothing in the harness: on the AC
 `test/unit/main.c` mirrors them, here they are only counted.
