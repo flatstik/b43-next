@@ -51,19 +51,22 @@ and none of the capture's is left over, and b43 printed nothing.
 
 All 14 windows pass.
 
-## A later init
+## The start of the BSS
 
-`up_hot` runs the `full` flow with `do_full_init` clear, with the RC
-calibration's results and the table 0x25 pair of the cold up given
-(`HT_RCCAL0`-`2`, `HT_T25`; on `cold-2g6-20` 0xb, 0xc, 0xe and 0x9). Against
-wl's `ssid` segment, which is that init, PHY and radio only, it follows wl
-in order to the target power of the TX power control setup (op 1294).
-What follows there, wl's calibrations, b43 does not have.
+When beaconing starts b43 initialises the HT-PHY again
+(`b43_ht_phy_recycle()`), as wl does at `ssid`. `gates.sh` scores that too:
+flow `ap_start`, on the PHY state the up left (the RC calibration's results
+and the table 0x25 pair, read off the capture's up), against the window from
+the `ssid` mark to `beaconing`, PHY and radio only. b43's operations there
+are wl's in order, but for the twelve of the analog switches of wl's core
+down and up, which b43 does not make; the calibrations wl runs after the
+init are not in b43 yet.
 
-```sh
-HT_NVRAM=... HT_CHANNEL=6 HT_RCCAL0=0xb HT_RCCAL1=0xc HT_RCCAL2=0xe HT_T25=0x9 \
-    ./ht-trace up_hot OPS 8733 35558 -o hot.trace
-```
+| capture | PHY+radio |
+|---|---|
+| cold-2g1-20 | 1540/20485 = 7.52% |
+| cold-2g6-20 | 1540/20492 = 7.52% |
+| cold-2g11-20 | 1540/20477 = 7.52% |
 
 ## Exceptions
 

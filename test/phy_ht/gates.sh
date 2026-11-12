@@ -49,4 +49,19 @@ for c in "$@"; do
 	python3 ../unit/cmp_skip.py "$T/$c.phy.ops" "$T/$c.phy.trace" \
 		"$first:$last" --board r6400v1 --bus $B | grep -A2 '^grezzo' |
 		sed '1s/^grezzo   /PHY+radio/'
+
+	# The start of the BSS: wl's init at `ssid`, b43's b43_ht_phy_recycle(),
+	# with what the up left read off the up.
+	a=$(awk "/MARK 'ssid'/ { print substr(\$2, 2) + 1; exit }" "$ops")
+	z=$(awk "/MARK 'beaconing'/ { print substr(\$2, 2) - 1; exit }" "$ops")
+	rc() { awk -v r="RAD.RD addr=$1 " 'index($0, r) { print $NF; exit }' "$ops" | sed 's/val=//'; }
+	t25=$(awk '/PHY\.WR addr=0x0072 val=0x94/ { print "0x" substr($NF, 9); exit }' "$ops")
+	echo "== $c, ap start, ops $a:$z"
+	HT_CHANNEL=$ch HT_RCCAL0=$(rc 0x034c) HT_RCCAL1=$(rc 0x034d) \
+		HT_RCCAL2=$(rc 0x034e) HT_T25=$t25 \
+		./ht-trace ap_start "$ops" "$a" "$z" -o "$T/$c.ap.trace" 2>/dev/null
+	grep -E ' (PHY|RAD)\.' "$T/$c.ap.trace" > "$T/$c.ap.phy.trace"
+	python3 ../unit/cmp_skip.py "$T/$c.phy.ops" "$T/$c.ap.phy.trace" \
+		"$a:$z" --board r6400v1 --bus $B | grep -A2 '^grezzo' |
+		sed '1s/^grezzo   /PHY+radio/'
 done
