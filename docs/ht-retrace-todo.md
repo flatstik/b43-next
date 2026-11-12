@@ -28,11 +28,14 @@ The unmatched runs of at least 20 wl ops:
 | #5738-#9669 | after the TX power control: the core (1540 MMIO reads, 876 shared memory writes) and 346 PHY writes |
 
 In order, PHY and radio only (`compare.py --bus` on the two streams
-filtered to `PHY.*` and `RAD.*`), b43 follows wl through the radio init,
-the channel setup with its gain control, the tables and the start of the
-PHY init, op 4177 of the window. There wl saves the classifier and the
-clip thresholds (0x0b0, 0x40e/0x44e/0x48e) and writes 0xc88/0xc89, where
-b43 reads 0x84c-0x88c for its RF sequence override.
+filtered to `PHY.*` and `RAD.*`), b43's operations are now one block, a
+prefix of wl's `up` (94.89% of `up`'s PHY and radio operations, 5104 of
+5379), with three values apart: the target power, by design (see
+`test/phy_ht/README.md`, "Exceptions"). After the gain state and table 7
+that follow the PHY init, wl reads the estimate tables, runs the TX power
+recalculation with its own target (0x5a on ch 6), writes 0x280/0x283
+once more, and at the end of `up` turns the analog and the radio off for
+the `ssid` re-init. b43 has none of these.
 
 The PHY's calls into the core (`b43_mac_suspend()`, the shared memory,
 `b43_mac_switch_freq()`, the PLL) emit nothing in the harness: on the AC

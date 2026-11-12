@@ -26,9 +26,9 @@ On 2026-11-12, `--min-block 8 --gap-tol 2`:
 
 | capture | grezzo | PHY+radio |
 |---|---|---|
-| cold-2g1-20 | 5323/48727 = 10.92% | 5338/25949 = 20.57% |
-| cold-2g6-20 | 5323/39605 = 13.44% | 5338/25956 = 20.57% |
-| cold-2g11-20 | 5323/44601 = 11.93% | 5338/25941 = 20.58% |
+| cold-2g1-20 | 5088/48630 = 10.46% | 5104/25861 = 19.74% |
+| cold-2g6-20 | 5088/39508 = 12.88% | 5104/25868 = 19.73% |
+| cold-2g11-20 | 5088/44504 = 11.43% | 5104/25853 = 19.74% |
 
 The second row compares the PHY's and radio's operations only: the core's
 MMIO, shared memory and wrapper accesses are outside a harness that
@@ -36,7 +36,7 @@ compiles no core. `full` makes the PHY calls of b43's core in its order:
 the analog switch of `b43_wireless_core_reset()` and of
 `b43_phy_bringup()`, then `b43_phy_init()`.
 
-b43 emits 5479 ops, wl 40 to 49 thousand: wl initialises the PHY again at
+b43 emits 5147 ops, wl 40 to 49 thousand: wl initialises the PHY again at
 `ssid`, with its calibrations, and b43 has neither. The calls b43's PHY makes
 into its core (MAC suspend, shared memory, PLL) are counted on stderr but
 emit no ops here. What is left is mapped in `../../docs/ht-retrace-todo.md`.
