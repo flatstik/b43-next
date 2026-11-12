@@ -96,6 +96,8 @@ static void b43_radio_2059_rcal(struct b43_wldev *dev)
 	if (!b43_radio_wait_value(dev, R2059_C3 | R2059_RCAL_STATUS, 1, 1, 100,
 				  1000000))
 		b43err(dev->wl, "Radio 0x2059 rcal timeout\n");
+	/* wl reads the code, as brcmsmac's 2057 rcal (status & 0x3e) */
+	b43_radio_read(dev, R2059_C3 | R2059_RCAL_STATUS);
 
 	/* Disable */
 	b43_radio_mask(dev, R2059_C3 | R2059_RCAL_CONFIG, ~0x1);
