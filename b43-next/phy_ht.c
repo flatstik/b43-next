@@ -328,12 +328,12 @@ static void b43_phy_ht_afe_unk1(struct b43_wldev *dev)
 	};
 
 	for (i = 0; i < 3; i++) {
-		/* TODO: verify masks&sets */
 		b43_phy_set(dev, ctl_regs[i][1], 0x4);
 		b43_phy_set(dev, ctl_regs[i][0], 0x4);
-		b43_phy_mask(dev, ctl_regs[i][1], ~0x1);
+		b43_phy_set(dev, ctl_regs[i][1], 0x1);
 		b43_phy_set(dev, ctl_regs[i][0], 0x1);
-		b43_httab_write(dev, B43_HTTAB16(8, 5 + (i * 0x10)), 0);
+		b43_httab_write(dev, B43_HTTAB16(8, 4 + (i * 0x10)), 0xa840);
+		b43_httab_write(dev, B43_HTTAB16(8, 5 + (i * 0x10)), 0x8);
 		b43_phy_mask(dev, ctl_regs[i][0], ~0x4);
 	}
 }
