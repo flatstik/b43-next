@@ -107,11 +107,17 @@ int b43_phy_init(struct b43_wldev *dev)
 	}
 	phy->do_full_init = false;
 
-	err = b43_switch_channel(dev, phy->channel);
-	if (err) {
-		b43err_restart(dev->wl,
-			       "PHY init: Channel switch to default failed\n");
-		goto err_phy_exit;
+	/*
+	 * The HT-PHY tuned the channel when its radio came on, before the
+	 * init; its stock driver does not tune it again.
+	 */
+	if (phy->type != B43_PHYTYPE_HT) {
+		err = b43_switch_channel(dev, phy->channel);
+		if (err) {
+			b43err_restart(dev->wl,
+				       "PHY init: Channel switch to default failed\n");
+			goto err_phy_exit;
+		}
 	}
 
 	return 0;
