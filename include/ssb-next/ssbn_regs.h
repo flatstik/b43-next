@@ -791,6 +791,9 @@
 #define SSBN_BFL2_SPUR_WAR		0x0200	/* has a workaround for clock-harmonic spurs */
 #define SSBN_BFL2_GPLL_WAR		0x0400	/* altenative G-band PLL settings implemented */
 
+/* Values for boardflags2_hi read from SPROM */
+#define SSBN_BFL2_HI_ANAPACTRL_2G	0x0010	/* 2.4 GHz PAs controlled by analog lines (0x00100000) */
+
 /* Values for SSBN_SPROM1_BINF_CCODE */
 enum {
 	SSBN_SPROM1CCODE_WORLD = 0,

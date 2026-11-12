@@ -810,6 +810,63 @@ static void b43_phy_ht_spur_avoid(struct b43_wldev *dev,
 }
 
 /*
+ * The gain state wl reads after its gain control setup and writes back,
+ * twice, after the PHY init. Of the reads only these values come back;
+ * the others are wl's, with no use in b43 yet.
+ */
+static void b43_phy_ht_gain_state_read(struct b43_wldev *dev,
+				       struct b43_phy_ht_gain_state *st)
+{
+	static const u16 base[3] = { 0x400, 0x440, 0x480 };
+	static const u16 routing[3] = { R2059_C1, R2059_C2, R2059_C3 };
+	static const u8 regs1[3] = { 0x12, 0x13, 0x0d };
+	static const u8 regs2[3] = { 0x16, 0x17, 0x24 };
+	static const u16 radio[4] = { 0x0ab, 0x0b0, 0x0b0, 0x0aa };
+	u16 buf[4];
+	int c, i;
+
+	for (c = 0; c < 3; c++)
+		st->r10[c] = b43_phy_read(dev, base[c] + 0x10);
+	for (c = 0; c < 3; c++)
+		st->r11[c] = b43_phy_read(dev, base[c] + 0x11);
+	st->r280 = b43_phy_read(dev, 0x280);
+	st->r283 = b43_phy_read(dev, 0x283);
+	st->r547 = b43_phy_read(dev, 0x547);
+	st->rc33 = b43_phy_read(dev, 0xc33);
+	b43_httab_read_bulk(dev, B43_HTTAB16(7, 0x106), 3, st->t7_106);
+	for (i = 0; i < 3; i++)
+		for (c = 0; c < 3; c++)
+			b43_phy_read(dev, base[c] + regs1[i]);
+	b43_httab_read_bulk(dev, B43_HTTAB16(4, 0x10), 4, buf);
+	b43_httab_read_bulk(dev, B43_HTTAB16(4, 0x50), 4, buf);
+	for (i = 0; i < 3; i++)
+		for (c = 0; c < 3; c++)
+			b43_phy_read(dev, base[c] + regs2[i]);
+	for (i = 0; i < 4; i++)
+		for (c = 0; c < 3; c++)
+			b43_radio_read(dev, routing[c] | radio[i]);
+	for (i = 0; i < 8; i++)
+		b43_phy_read(dev, 0x228 + i);
+}
+
+static void b43_phy_ht_gain_state_write(struct b43_wldev *dev,
+					const struct b43_phy_ht_gain_state *st)
+{
+	static const u16 base[3] = { 0x400, 0x440, 0x480 };
+	int c;
+
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x10, st->r10[c]);
+	for (c = 0; c < 3; c++)
+		b43_phy_write(dev, base[c] + 0x11, st->r11[c]);
+	b43_httab_write_bulk(dev, B43_HTTAB16(7, 0x106), 3, st->t7_106);
+	b43_phy_maskset(dev, 0x280, 0xff00, st->r280 & 0xff);
+	b43_phy_maskset(dev, 0x283, 0xff00, st->r283 & 0xff);
+	b43_phy_write(dev, 0xc33, st->rc33);
+	b43_phy_write(dev, 0x547, st->r547);
+}
+
+/*
  * The gain control setup wl runs at the end of the channel setup, as its
  * captures show it on every 2.4 GHz channel at 20 and 40 MHz. The reads
  * are wl's; b43 has no use for their values yet.
@@ -829,6 +886,7 @@ static void b43_phy_ht_gain_ctl_setup(struct b43_wldev *dev,
 	static const u16 reg16[3] = { 0x4c, 0x4c, 0x6c };
 	/* One per channel modulo 4, the same on every capture */
 	static const u16 t25_off[4] = { 0x2a, 0x19, 0x09, 0x3a };
+	struct b43_phy_ht *phy_ht = dev->phy.ht;
 	u16 buf[4];
 	int c, i;
 
@@ -905,38 +963,7 @@ static void b43_phy_ht_gain_ctl_setup(struct b43_wldev *dev,
 		b43_httab_write(dev, B43_HTTAB16(8, 0x0f + c * 0x10), 0);
 	}
 
-	for (c = 0; c < 3; c++)
-		b43_phy_read(dev, base[c] + 0x10);
-	for (c = 0; c < 3; c++)
-		b43_phy_read(dev, base[c] + 0x11);
-	b43_phy_read(dev, 0x280);
-	b43_phy_read(dev, 0x283);
-	b43_phy_read(dev, 0x547);
-	b43_phy_read(dev, 0xc33);
-	b43_httab_read_bulk(dev, B43_HTTAB16(7, 0x106), 3, buf);
-	for (i = 0; i < 3; i++) {
-		static const u8 regs[3] = { 0x12, 0x13, 0x0d };
-
-		for (c = 0; c < 3; c++)
-			b43_phy_read(dev, base[c] + regs[i]);
-	}
-	b43_httab_read_bulk(dev, B43_HTTAB16(4, 0x10), 4, buf);
-	b43_httab_read_bulk(dev, B43_HTTAB16(4, 0x50), 4, buf);
-	for (i = 0; i < 3; i++) {
-		static const u8 regs[3] = { 0x16, 0x17, 0x24 };
-
-		for (c = 0; c < 3; c++)
-			b43_phy_read(dev, base[c] + regs[i]);
-	}
-	for (i = 0; i < 4; i++) {
-		static const u16 regs[4] = { 0x0ab, 0x0b0, 0x0b0, 0x0aa };
-		static const u16 routing[3] = { R2059_C1, R2059_C2, R2059_C3 };
-
-		for (c = 0; c < 3; c++)
-			b43_radio_read(dev, routing[c] | regs[i]);
-	}
-	for (i = 0; i < 8; i++)
-		b43_phy_read(dev, 0x228 + i);
+	b43_phy_ht_gain_state_read(dev, &phy_ht->gain_state);
 
 	/* The clip thresholds, as wl writes them twice; not derived yet */
 	for (i = 0; i < 2; i++) {
@@ -1062,6 +1089,8 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	u16 tmp;
 	u16 clip_state[3];
 	bool saved_tx_pwr_ctl;
+	bool anapactrl = dev->dev->bus_sprom->boardflags2_hi &
+			 SSBN_BFL2_HI_ANAPACTRL_2G;
 	int i;
 
 	if (dev->dev->bus_type != B43_BUS_BCMA) {
@@ -1168,6 +1197,23 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	b43_phy_ht_tx_power_ctl_setup(dev);
 	b43_phy_ht_tssi_setup(dev);
 	b43_phy_ht_tx_power_ctl(dev, saved_tx_pwr_ctl);
+
+	b43_phy_ht_gain_state_read(dev, &phy_ht->gain_state);
+	b43_phy_ht_gain_state_write(dev, &phy_ht->gain_state);
+	b43_phy_ht_gain_state_write(dev, &phy_ht->gain_state);
+
+	b43_httab_write_few(dev, B43_HTTAB16(7, 0x10), 9, 0x4, 0x3, 0x6, 0x5,
+			    0x2, 0x1, 0x8, 0x1f, 0x1f);
+	b43_httab_write_few(dev, B43_HTTAB16(7, 0x90), 9, anapactrl ? 0x46 : 0x08,
+			    0x4, 0x2, 0x2, 0x4, 0x4, 0x6, 0x1, 0x1);
+	for (i = 0; i < 7; i++) {
+		b43_httab_write(dev, B43_HTTAB16(7, 0x19 + i), 0x1f);
+		b43_httab_write(dev, B43_HTTAB16(7, 0x99 + i), 0x1);
+	}
+	if (anapactrl) {
+		b43_phy_maskset(dev, 0x259, ~0x00f0, 0x0040);
+		b43_phy_maskset(dev, 0x259, ~0x0f00, 0x0400);
+	}
 
 	return 0;
 }

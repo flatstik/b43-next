@@ -124,7 +124,14 @@ struct b43_phy_ht_channeltab_e_phy {
 };
 
 
+struct b43_phy_ht_gain_state {
+	u16 r10[3], r11[3];
+	u16 r280, r283, r547, rc33;
+	u16 t7_106[3];
+};
+
 struct b43_phy_ht {
+	struct b43_phy_ht_gain_state gain_state;
 	bool tx_pwr_ctl;
 	u8 tx_pwr_idx[3];
 
