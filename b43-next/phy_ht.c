@@ -614,6 +614,7 @@ static void b43_phy_ht_tx_power_ctl_idle_tssi(struct b43_wldev *dev)
 
 	for (core = 0; core < 3; core++)
 		phy_ht->idle_tssi[core] = (rssi_buf[core * 2] / 8) & 0x3f;
+	phy_ht->tssi_delay = b43_httab_read(dev, B43_HTTAB16(8, 0x1b));
 
 	for (core = 0; core < 3; core++) {
 		b43_phy_write(dev, base[core] + 0, save_regs[core][0]);
@@ -709,7 +710,7 @@ static void b43_phy_ht_tx_power_ctl_setup(struct b43_wldev *dev)
 			idle[2] << B43_PHY_HT_TXPCTL_IDLE_TSSI2_C3_SHIFT);
 
 	b43_phy_maskset(dev, B43_PHY_HT_TXPCTL_N, ~B43_PHY_HT_TXPCTL_N_TSSID,
-			0xf0);
+			phy_ht->tssi_delay);
 	b43_phy_maskset(dev, B43_PHY_HT_TXPCTL_N, ~B43_PHY_HT_TXPCTL_N_NPTIL2,
 			0x3 << B43_PHY_HT_TXPCTL_N_NPTIL2_SHIFT);
 #if 0
@@ -888,6 +889,7 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	u16 tmp;
 	u16 clip_state[3];
 	bool saved_tx_pwr_ctl;
+	int i;
 
 	if (dev->dev->bus_type != B43_BUS_BCMA) {
 		b43err(dev->wl, "HT-PHY is supported only on BCMA bus!\n");
@@ -946,16 +948,18 @@ static int b43_phy_ht_op_init(struct b43_wldev *dev)
 	b43_httab_write(dev, B43_HTTAB16(8, 0x10), 0x02);
 	b43_httab_write(dev, B43_HTTAB16(8, 0x20), 0x02);
 
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x08), 4,
-			    0x8e, 0x96, 0x96, 0x96);
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x18), 4,
-			    0x8f, 0x9f, 0x9f, 0x9f);
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x28), 4,
-			    0x8f, 0x9f, 0x9f, 0x9f);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x08), 3, 0x8e, 0x96, 0x96);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x18), 3, 0x8f, 0x9f, 0x9f);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x28), 3, 0x8f, 0x9f, 0x9f);
 
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x0c), 4, 0x2, 0x2, 0x2, 0x2);
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x1c), 4, 0x2, 0x2, 0x2, 0x2);
-	b43_httab_write_few(dev, B43_HTTAB16(8, 0x2c), 4, 0x2, 0x2, 0x2, 0x2);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x0c), 3, 0x2, 0x2, 0x2);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x1c), 3, 0x2, 0x2, 0x2);
+	b43_httab_write_few(dev, B43_HTTAB16(8, 0x2c), 3, 0x2, 0x2, 0x2);
+
+	for (i = 0; i < 3; i++) {
+		b43_httab_write(dev, B43_HTTAB16(8, 0x0b + i * 0x10), 0x96);
+		b43_httab_write(dev, B43_HTTAB16(8, 0x0f + i * 0x10), 0);
+	}
 
 	b43_phy_maskset(dev, 0x0280, 0xff00, 0x3e);
 	b43_phy_maskset(dev, 0x0283, 0xff00, 0x3e);

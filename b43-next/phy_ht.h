@@ -133,6 +133,7 @@ struct b43_phy_ht {
 	s32 bb_mult_save[3];
 
 	u8 idle_tssi[3];
+	u8 tssi_delay;
 };
 
 
