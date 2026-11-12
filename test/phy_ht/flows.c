@@ -138,6 +138,25 @@ int ht_run_flow(const char *name)
 		b43_phy_txpower_check(dev, B43_TXPWR_IGNORE_TIME |
 				      B43_TXPWR_IGNORE_TSSI);
 		dev->phy.ops->adjust_txpower(dev);
+	} else if (!strcmp(name, "up_hot")) {
+		/*
+		 * The full flow on a PHY initialised once already: no full
+		 * init. What the first init left, the RC calibration's
+		 * results and the table 0x25 pair, is given from the cold up.
+		 */
+		dev->phy.chandef = NULL;
+		dev->phy.do_full_init = false;
+		phy_ht.rccal[0] = ht_env("HT_RCCAL0", 0);
+		phy_ht.rccal[1] = ht_env("HT_RCCAL1", 0);
+		phy_ht.rccal[2] = ht_env("HT_RCCAL2", 0);
+		phy_ht.t25_off = ht_env("HT_T25", 0);
+		phy_ht.t25_set = true;
+		dev->phy.ops->switch_analog(dev, true);
+		dev->phy.ops->switch_analog(dev, true);
+		b43_phy_init(dev);
+		b43_phy_txpower_check(dev, B43_TXPWR_IGNORE_TIME |
+				      B43_TXPWR_IGNORE_TSSI);
+		dev->phy.ops->adjust_txpower(dev);
 	} else if (!strcmp(name, "pctl_init")) {
 		/* The TX power control at the end of b43_phy_ht_op_init() */
 		bool saved = phy_ht.tx_pwr_ctl;

@@ -39,6 +39,13 @@ The PHY's calls into the core (`b43_mac_suspend()`, the shared memory,
 
 ## `ssid`
 
+b43 has the later init wl runs here (`up_hot` in `test/phy_ht`), in order
+up to the TX power control's target, but nothing in b43 runs it yet: b43
+asks for a full init on every core init, and does no PHY init when the AP
+starts. Where it should, as the AC's `b43_ac_phy_recycle()` does on a
+retune, is the open question.
+
+
 wl initialises the PHY for the channel again, without the radio init of
 `up`, then calibrates:
 
