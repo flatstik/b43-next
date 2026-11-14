@@ -2144,11 +2144,15 @@ void b43_rx(struct b43_wldev *dev, struct sk_buff *skb, const void *_rxhdr)
 		 */
 		keyidx = b43_kidx_to_raw(dev, keyidx);
 		/*
-		 * The BCM43227 (dev->ht) reports index 63, past the key table,
-		 * for some frames it decrypted: no decryption error, the LLC
-		 * header in the clear. Elsewhere such an index stays an error.
+		 * The BCM43227 reports index 63, past the key table, for some
+		 * frames it decrypted: no decryption error, the LLC header in
+		 * the clear. That comes from the hardware, with HT or without
+		 * (qos=0 clears dev->ht), so on core rev 30 with an N-PHY.
+		 * Elsewhere such an index stays an error.
 		 */
-		if (B43_WARN_ON(keyidx >= ARRAY_SIZE(dev->key) && !dev->ht))
+		if (B43_WARN_ON(keyidx >= ARRAY_SIZE(dev->key) &&
+				!(dev->dev->core_rev == 30 &&
+				  dev->phy.type == B43_PHYTYPE_N)))
 			goto drop;
 		if (keyidx >= ARRAY_SIZE(dev->key) ||
 		    dev->key[keyidx].algorithm != B43_SEC_ALGO_NONE) {
