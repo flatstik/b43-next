@@ -6714,7 +6714,8 @@ static int b43_op_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
 		algorithm = B43_SEC_ALGO_AES;
 		break;
 	default:
-		B43_WARN_ON(1);
+		/* CCMP-256, GCMP and BIP keys are handled by mac80211 */
+		err = -EOPNOTSUPP;
 		goto out_unlock;
 	}
 	index = (u8) (key->keyidx);
@@ -6788,6 +6789,12 @@ static int b43_op_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
 		key->flags |= IEEE80211_KEY_FLAG_GENERATE_IV;
 		if (algorithm == B43_SEC_ALGO_TKIP)
 			key->flags |= IEEE80211_KEY_FLAG_GENERATE_MMIC;
+		/*
+		 * The hardware encrypts every frame as a data frame, which
+		 * is wrong for robust management frames under MFP.
+		 */
+		if (algorithm == B43_SEC_ALGO_AES)
+			key->flags |= IEEE80211_KEY_FLAG_SW_MGMT_TX;
 		break;
 	case DISABLE_KEY: {
 		if (sta && (key->flags & IEEE80211_KEY_FLAG_PAIRWISE))
